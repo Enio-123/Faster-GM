@@ -36,7 +36,7 @@ export function Settings() {
     ['showLegal', 'Casas possíveis', 'Pontos onde a peça selecionada pode ir (nunca no cálculo às cegas).'],
     ['premove', 'Pré-lance nas partidas', 'Marque seu lance na vez do bot; ele sai assim que o bot jogar.'],
     ['autoQueen', 'Promover direto para dama', 'Sem a janela de escolha da peça.'],
-    ['intro', 'Animação de abertura', 'O Tempo entrando ao abrir o app.'],
+    ['intro', 'Animação de abertura', 'O cavalo coroado entrando ao abrir o app.'],
   ]
 
   return (
@@ -186,7 +186,7 @@ export function Settings() {
             <span className="eyebrow">Créditos</span>
             <p className="muted">Problemas: base de puzzles do Lichess (domínio público, CC0), conferidos lance a lance no build.</p>
             <p className="muted">Motor: {ENGINE_NAME}, licença GPL-3.0. Peças: cburnett (Colin M.L. Burnett), GPLv2+. Fontes: Barlow, SIL OFL.</p>
-            <p className="muted">O Tempo é um personagem original do Faster GM.</p>
+            <p className="muted">Tempo, o cavalo coroado do ícone, é o treinador e o bot do Faster GM.</p>
           </div>
         </section>
       </div>

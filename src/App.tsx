@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { Coach } from './coach/Coach'
+import iconTile from './assets/brand/icone-96.webp'
 import { Intro } from './coach/Intro'
 import { useSettings, useSyncStatus } from './lib/state'
 import { BlindCalc } from './pages/BlindCalc'
@@ -55,9 +55,7 @@ const originalTheme = typeof document !== 'undefined' ? document.documentElement
 function Wordmark() {
   return (
     <a className="wordmark" href="#hoje" style={{ color: 'inherit', textDecoration: 'none' }} aria-label="Faster GM, início">
-      <span style={{ width: 26, display: 'inline-block' }}>
-        <Coach mood="idle" title="Faster GM" />
-      </span>
+      <img className="wordmark-icon" src={iconTile} alt="" width={30} height={30} draggable={false} />
       <span>
         Faster <b>GM</b>
       </span>

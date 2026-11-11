@@ -19,7 +19,7 @@ A tela Hoje divide o tempo escolhido (1h, 1h30, 2h, 3h ou 4h) em blocos, nesta o
 
 ## Nível do bot
 
-O bot se chama Tempo, um personagem original do app. A partir de 1320 ele usa a escala UCI_Elo do Stockfish; abaixo disso escolhe entre os 5 melhores lances com um sorteio que erra mais quanto menor o nível. O nível recomendado mistura o seu desempenho contra o bot com o rating de problemas menos 300 (depois de 10 problemas). A escala é aproximada e não equivale ao rating do chess.com nem da FIDE.
+O bot se chama Tempo e é o cavalo coroado do ícone, o mesmo que aparece como treinador nas telas. A partir de 1320 ele usa a escala UCI_Elo do Stockfish; abaixo disso escolhe entre os 5 melhores lances com um sorteio que erra mais quanto menor o nível. O nível recomendado mistura o seu desempenho contra o bot com o rating de problemas menos 300 (depois de 10 problemas). A escala é aproximada e não equivale ao rating do chess.com nem da FIDE.
 
 ## Dados e motor
 
