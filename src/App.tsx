@@ -5,6 +5,7 @@ import { useSettings, useSyncStatus } from './lib/state'
 import { BlindCalc } from './pages/BlindCalc'
 import { MateLadder } from './pages/MateLadder'
 import { Play } from './pages/Play'
+import { Pressure } from './pages/Pressure'
 import { Progress } from './pages/Progress'
 import { Review } from './pages/Review'
 import { Settings } from './pages/Settings'
@@ -15,7 +16,7 @@ import { Train } from './pages/Train'
 import { useRoute } from './ui/hooks'
 import { IconPlay, IconProgress, IconSettings, IconToday, IconTrain } from './ui/icons'
 
-const TRAIN_ROUTES = new Set(['treinos', 'mate', 'sequencia', 'relampago', 'calculo', 'erros'])
+const TRAIN_ROUTES = new Set(['treinos', 'mate', 'pressao', 'sequencia', 'relampago', 'calculo', 'erros'])
 
 const NAV: { id: string; label: string; icon: () => ReactNode; match: (r: string) => boolean }[] = [
   { id: 'hoje', label: 'Hoje', icon: IconToday, match: (r) => r === 'hoje' },
@@ -30,6 +31,8 @@ function page(route: string) {
       return <Train />
     case 'mate':
       return <MateLadder />
+    case 'pressao':
+      return <Pressure />
     case 'sequencia':
       return <Streak />
     case 'relampago':

@@ -85,7 +85,7 @@ export function Review() {
               {due.length ? `Revisar ${Math.min(30, due.length)}` : 'Sem cartões para hoje'}
             </button>
             {!s.review.length && (
-              <div className="empty">Os cartões aparecem quando você erra um problema da escada ou comete um erro numa partida contra o Tempo (a análise roda sozinha no fim da partida).</div>
+              <div className="empty">Os cartões aparecem quando você erra um problema da escada ou da pressão de tempo, ou comete um erro numa partida contra o Tempo (a análise roda sozinha no fim da partida).</div>
             )}
           </div>
           <div className="panel stack">

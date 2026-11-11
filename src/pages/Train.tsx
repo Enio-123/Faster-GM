@@ -9,6 +9,7 @@ export function Train() {
   const top = [...MATE_LEVELS].reverse().find((l) => isUnlocked(s, ORDER, l.id)) ?? MATE_LEVELS[0]
   const due = dueCards(s).length
   const calcTries = ['calc3', 'calc4', 'calc5', 'calc6', 'mate3', 'mate4', 'mate5', 'mate6'].reduce((a, b) => a + levelStats(s, 'cego-' + b).tries, 0)
+  const pressureBest = Math.max(0, ...Object.values(s.records.pressure))
 
   return (
     <div className="page">
@@ -27,6 +28,16 @@ export function Train() {
             <span className="pill num">Rating {Math.round(s.puzzle.r)}</span>
           </div>
         </a>
+        <a className="mode" href="#pressao">
+          <div className="head">
+            <h3>Pressão de tempo</h3>
+            <span className="pill pill-accent">5 a 30 min</span>
+          </div>
+          <p>Mates ou linhas táticas contra o relógio, sem ajuda na hora. No fim, cada erro vem explicado: o seu lance, o lance certo e o porquê.</p>
+          <div className="foot">
+            <span className="pill num">recorde {pressureBest}</span>
+          </div>
+        </a>
         <a className="mode" href="#calculo">
           <div className="head">
             <h3>Cálculo às cegas</h3>
@@ -43,7 +54,7 @@ export function Train() {
             <h3>Sequência</h3>
             <span className="pill">sem errar</span>
           </div>
-          <p>Mates consecutivos que ficam mais longos a cada 3 acertos. Um erro encerra.</p>
+          <p>Mates consecutivos que ficam mais longos a cada 3 acertos. Um erro encerra, e o erro vem explicado.</p>
           <div className="foot">
             <span className="pill num">recorde {s.records.seqBest}</span>
           </div>
@@ -53,7 +64,7 @@ export function Train() {
             <h3>Relâmpago</h3>
             <span className="pill">3 minutos</span>
           </div>
-          <p>O máximo de problemas curtos em 3 minutos. Errou, perde 10 segundos. Velocidade de padrão.</p>
+          <p>O máximo de problemas curtos em 3 minutos. Errou, perde 10 segundos. No fim, os erros vêm explicados.</p>
           <div className="foot">
             <span className="pill num">recorde {s.records.stormBest}</span>
           </div>
@@ -63,7 +74,7 @@ export function Train() {
             <h3>Revisão dos erros</h3>
             <span className={`pill ${due ? 'pill-bad' : ''}`}>{due} hoje</span>
           </div>
-          <p>Seus erros das partidas contra o Tempo e os problemas que você errou voltam em intervalos crescentes até virar reflexo.</p>
+          <p>Seus erros das partidas contra o Tempo e os problemas que você errou na escada e na pressão de tempo voltam em intervalos crescentes até virar reflexo.</p>
           <div className="foot">
             <span className="pill num">{s.review.length} cartões</span>
           </div>

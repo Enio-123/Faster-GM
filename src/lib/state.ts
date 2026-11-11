@@ -75,7 +75,8 @@ export interface AppState {
   seenSig: Record<string, string>
   /** Segundos de treino por dia e por bloco da rotina. */
   days: Record<string, Record<string, number>>
-  records: { seqBest: number; seqBestLevel: number; stormBest: number; calcBest: number }
+  /** Recordes. `pressure`: acertos por formato da Pressão de tempo ("mate4-10" = mate em 4, 10 minutos). */
+  records: { seqBest: number; seqBestLevel: number; stormBest: number; calcBest: number; pressure: Record<string, number> }
   bot: { ladder: number; games: number }
   review: ReviewCard[]
   games: GameRecord[]
@@ -106,7 +107,7 @@ export function initialState(now = Date.now()): AppState {
     seen: {},
     seenSig: {},
     days: {},
-    records: { seqBest: 0, seqBestLevel: 0, stormBest: 0, calcBest: 0 },
+    records: { seqBest: 0, seqBestLevel: 0, stormBest: 0, calcBest: 0, pressure: {} },
     bot: { ladder: 1200, games: 0 },
     review: [],
     games: [],
@@ -129,7 +130,7 @@ export function normalize(raw: unknown): AppState {
     settings,
     profile: { ...base.profile, ...(s.profile ?? {}) },
     puzzle: { ...base.puzzle, ...(s.puzzle ?? {}) },
-    records: { ...base.records, ...(s.records ?? {}) },
+    records: { ...base.records, ...(s.records ?? {}), pressure: { ...(s.records?.pressure ?? {}) } },
     bot: { ...base.bot, ...(s.bot ?? {}) },
     levels: s.levels ?? {},
     seen: s.seen ?? {},

@@ -13,6 +13,9 @@ function outcome(g: GameRecord): 'v' | 'e' | 'd' {
 
 export function Progress() {
   const s = useAppState()
+  const pressure = Object.entries(s.levels)
+    .filter(([k]) => k.startsWith('pressao-'))
+    .reduce((a, [, l]) => ({ tries: a.tries + l.tries, solved: a.solved + l.solved }), { tries: 0, solved: 0 })
   const target = s.settings.dailyMinutes
   const totalSec = Object.values(s.days).reduce((a, d) => a + totalSeconds(d), 0)
   const analysed = s.games.filter((g) => g.blunders !== undefined)
@@ -135,6 +138,10 @@ export function Progress() {
             <div className="stat">
               <span className="v">{s.records.stormBest}</span>
               <span className="k">recorde do relâmpago</span>
+            </div>
+            <div className="stat">
+              <span className="v">{pressure.tries ? `${pressure.solved}/${pressure.tries}` : '–'}</span>
+              <span className="k">acertos na pressão de tempo</span>
             </div>
           </div>
         </section>

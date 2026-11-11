@@ -5,6 +5,7 @@ import { getState, useAppState } from '../lib/state'
 import { formatSolve } from '../lib/time'
 import { go, useTrainingTimer } from '../ui/hooks'
 import { IconArrowLeft, IconArrowRight, IconEye, IconLock, IconRetry } from '../ui/icons'
+import { presetPressure } from './Pressure'
 import { CoachSays, coachText, Feedback, moodFor, MoveList, PromptLine, PuzzleBoard, RunTimer, Steps } from '../train/PuzzleView'
 import { usePuzzleRun } from '../train/usePuzzleRun'
 
@@ -194,6 +195,13 @@ export function MateLadder() {
             <p className="muted" style={{ fontSize: 13 }}>
               Problemas reais de partidas (base do Lichess). Lance diferente do gabarito vale se o motor confirmar o mate no mesmo número de lances.
             </p>
+            <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => {
+                presetPressure(level)
+                go('pressao')
+              }}
+            >
+              Treinar com pressão de tempo <IconArrowRight />
+            </button>
           </div>
         </aside>
       </div>

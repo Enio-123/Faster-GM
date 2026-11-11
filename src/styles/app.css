@@ -384,6 +384,24 @@ a.list-row:hover .title, button.list-row:hover .title { color: var(--accent-stro
 .clock .digit { display: inline-block; width: 0.56em; text-align: center; }
 .result-box { background: var(--surface); border-radius: var(--r-lg); padding: 22px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; box-shadow: var(--shadow); max-width: 320px; width: 100%; }
 .result-box .big { font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: 1; }
+
+/* ---------- Erros explicados ---------- */
+.miss-head { font-size: var(--fs-lg); line-height: 1.35; }
+.miss-head b { font-family: var(--font-display); font-weight: 700; font-size: 1.15em; letter-spacing: 0.01em; }
+.miss-head .bad { color: var(--bad); }
+.miss-head .good { color: var(--good); }
+.miss-sec { display: flex; flex-direction: column; gap: 6px; }
+.miss-sec h4 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--fs-sm); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.miss-sec ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-sm); line-height: 1.45; }
+.miss-sec > p { font-size: var(--fs-sm); }
+.line-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; font-size: var(--fs-sm); max-height: 300px; overflow-y: auto; }
+.line-notes button { display: grid; grid-template-columns: 44px 66px minmax(0, 1fr); gap: 8px; align-items: baseline; width: 100%; padding: 5px 8px; border: 0; border-radius: var(--r-sm); background: none; text-align: left; font-variant-numeric: tabular-nums; }
+.line-notes button:hover { background: var(--surface-2); }
+.line-notes button[aria-current='true'] { background: var(--accent-soft); }
+.line-notes .mn { color: var(--muted); }
+.line-notes .san { font-weight: 700; }
+.line-notes .me .san { color: var(--accent-text); }
+.line-notes .tags { color: var(--muted); }
 .eval-graph { width: 100%; height: 90px; display: block; }
 .mistake { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .mistake:last-child { border-bottom: 0; }

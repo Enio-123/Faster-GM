@@ -52,9 +52,10 @@ export interface AttemptResult {
 
 /**
  * Registra a primeira tentativa de um problema. `rated: false` (nova tentativa, revisão)
- * conta tempo e estatística, mas não mexe no rating.
+ * conta tempo e estatística, mas não mexe no rating. Erro em problema valendo rating, ou com
+ * `review: true`, vira cartão da revisão dos erros.
  */
-export function recordAttempt(p: Puzzle, ok: boolean, ms: number, opts: { rated: boolean; statsKey?: string }): AttemptResult {
+export function recordAttempt(p: Puzzle, ok: boolean, ms: number, opts: { rated: boolean; statsKey?: string; review?: boolean }): AttemptResult {
   const before = getState().puzzle.r
   let after = before
   setState((s) => {
@@ -77,7 +78,7 @@ export function recordAttempt(p: Puzzle, ok: boolean, ms: number, opts: { rated:
       ratingHistory = last && last[0] === today ? [...ratingHistory.slice(0, -1), [today, Math.round(puzzle.r)]] : [...ratingHistory, [today, Math.round(puzzle.r)]]
     }
     let reviewList = s.review
-    if (!ok && opts.rated && !reviewList.some((c) => c.id === 'p:' + p.id)) {
+    if (!ok && (opts.rated || opts.review) && !reviewList.some((c) => c.id === 'p:' + p.id)) {
       const card: ReviewCard = {
         ...firstSchedule(),
         id: 'p:' + p.id,

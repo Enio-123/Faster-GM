@@ -1,14 +1,16 @@
-// Sequência: mates cada vez mais longos e difíceis, sem errar. Um erro encerra.
+// Sequência: mates cada vez mais longos e difíceis, sem errar. Um erro encerra,
+// e o erro vem explicado no fim: o seu lance, o lance certo e o porquê.
 import { useCallback, useState } from 'react'
 import { loadBucket, MATE_LEVELS, pickRow, toPuzzle, type Puzzle } from '../lib/puzzles'
 import { recordAttempt } from '../lib/progress'
 import { getState, setState, useAppState } from '../lib/state'
 import { go, useTrainingTimer } from '../ui/hooks'
-import { IconArrowLeft, IconEye, IconRetry } from '../ui/icons'
+import { IconArrowLeft, IconRetry } from '../ui/icons'
 import { Coach } from '../coach/Coach'
 import { line } from '../lib/coach'
+import { MissReview } from '../train/MissReview'
 import { CoachSays, coachText, Feedback, moodFor, MoveList, PromptLine, PuzzleBoard, RunTimer, Steps } from '../train/PuzzleView'
-import { usePuzzleRun } from '../train/usePuzzleRun'
+import { usePuzzleRun, type Miss } from '../train/usePuzzleRun'
 
 /** A cada 3 acertos o mate fica 1 lance mais longo; o rating-alvo sobe a cada acerto. */
 export function streakLevel(solved: number) {
@@ -24,6 +26,7 @@ export function Streak() {
   const [base, setBase] = useState(0)
   const [seen] = useState(() => new Set<string>())
   const [error, setError] = useState<string | null>(null)
+  const [miss, setMiss] = useState<Miss[]>([])
 
   const load = useCallback(
     async (solved: number, startRating: number) => {
@@ -45,12 +48,13 @@ export function Streak() {
     const b = Math.round(getState().puzzle.r - 250)
     setBase(b)
     setCount(0)
+    setMiss([])
     setPhase('run')
     void load(0, b)
   }
 
   const onResolved = useCallback(
-    (ok: boolean, ms: number) => {
+    (ok: boolean, ms: number, m?: Miss) => {
       if (!puzzle) return
       recordAttempt(puzzle, ok, ms, { rated: false, statsKey: 'sequencia' })
       if (ok) {
@@ -63,13 +67,46 @@ export function Streak() {
           const better = count > st.records.seqBest
           return better ? { ...st, records: { ...st.records, seqBest: count, seqBestLevel: lvl } } : st
         })
-        window.setTimeout(() => setPhase('end'), 400)
+        if (m) setMiss([m])
+        window.setTimeout(() => setPhase('end'), 700)
       }
     },
     [puzzle, count, base, load],
   )
-  const run = usePuzzleRun(phase === 'start' ? null : puzzle, onResolved)
+  const run = usePuzzleRun(phase === 'run' ? puzzle : null, onResolved, { reveal: false })
   const view = run.view
+
+  if (phase === 'end')
+    return (
+      <div className="page page-train">
+        <div className="row">
+          <button className="icon-btn" onClick={() => go('treinos')} aria-label="Voltar para treinos">
+            <IconArrowLeft />
+          </button>
+          <h2>Sequência</h2>
+        </div>
+        <div className="panel stack-lg">
+          <div className="coach-line" style={{ gridTemplateColumns: '84px minmax(0,1fr)' }}>
+            <Coach mood={count > 0 && count >= s.records.seqBest ? 'happy' : 'idle'} />
+            <div className="stack" style={{ gap: 6 }}>
+              <span className="eyebrow">Fim da sequência</span>
+              <h3 className="num" style={{ fontSize: 40 }}>
+                {count} {count === 1 ? 'acerto seguido' : 'acertos seguidos'}
+              </h3>
+              <p className="muted">
+                {line('streakEnd', count)} Recorde: {Math.max(s.records.seqBest, count)}.
+              </p>
+            </div>
+          </div>
+          <div className="row">
+            <button className="btn btn-primary btn-lg" onClick={start}>
+              <IconRetry /> De novo
+            </button>
+          </div>
+        </div>
+        {miss.length > 0 && <MissReview misses={miss} title="O erro explicado" />}
+      </div>
+    )
 
   if (phase === 'start')
     return (
@@ -86,7 +123,7 @@ export function Streak() {
             <div className="stack">
               <h3>Mates em sequência, sem errar</h3>
               <p className="muted">
-                Começa com mate em 3. A cada 3 acertos o mate fica um lance mais longo e o problema fica mais difícil, até mate em 8 ou mais. Um erro encerra a sequência.
+                Começa com mate em 3. A cada 3 acertos o mate fica um lance mais longo e o problema fica mais difícil, até mate em 8 ou mais. Um erro encerra a sequência, e no fim o erro vem explicado.
               </p>
             </div>
           </div>
@@ -124,29 +161,7 @@ export function Streak() {
       <div className="train">
         <div className="train-board">
           {puzzle && view ? (
-            <PuzzleBoard
-              puzzle={puzzle}
-              view={view}
-              onMove={run.onMove}
-              overlay={
-                phase === 'end' && !view.showing ? (
-                  <div className="result-box">
-                    <span className="eyebrow">Sequência encerrada</span>
-                    <span className="big num">{count}</span>
-                    <span className="muted">{count === 1 ? 'acerto seguido' : 'acertos seguidos'}</span>
-                    <p style={{ fontSize: 14 }}>{line('streakEnd', count)}</p>
-                    <div className="row" style={{ justifyContent: 'center' }}>
-                      <button className="btn btn-primary" onClick={start}>
-                        <IconRetry /> De novo
-                      </button>
-                      <button className="btn" onClick={run.showSolution}>
-                        <IconEye /> Ver solução
-                      </button>
-                    </div>
-                  </div>
-                ) : undefined
-              }
-            />
+            <PuzzleBoard puzzle={puzzle} view={view} onMove={run.onMove} />
           ) : (
             <div className="board-frame" style={{ background: 'var(--surface-2)' }} aria-busy="true" />
           )}
@@ -159,12 +174,7 @@ export function Streak() {
                 <RunTimer view={view} />
               </div>
               <Steps total={puzzle.length} done={view.done} failed={view.phase === 'failed'} />
-              <Feedback view={view} />
-              {phase === 'end' && view.showing && (
-                <button className="btn btn-primary" onClick={start}>
-                  <IconRetry /> De novo
-                </button>
-              )}
+              {view.phase === 'failed' ? <div className="feedback bad">Errou. A explicação vem em seguida.</div> : <Feedback view={view} />}
               <MoveList puzzle={puzzle} view={view} />
               <CoachSays mood={moodFor(view)} text={coachText(view, count + 7)} />
             </>

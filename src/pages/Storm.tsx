@@ -1,4 +1,5 @@
 // Relâmpago: 3 minutos para resolver o máximo de problemas curtos. Erro tira 10 segundos.
+// A solução não aparece na hora; no fim, cada erro vem explicado.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { loadBucket, pickRow, toPuzzle, type Puzzle, type Row } from '../lib/puzzles'
 import { recordAttempt } from '../lib/progress'
@@ -8,8 +9,9 @@ import { formatClock } from '../lib/time'
 import { go, useNow, useTrainingTimer } from '../ui/hooks'
 import { IconArrowLeft, IconRetry } from '../ui/icons'
 import { Coach } from '../coach/Coach'
+import { MissReview } from '../train/MissReview'
 import { CoachSays, moodFor, PromptLine, PuzzleBoard } from '../train/PuzzleView'
-import { usePuzzleRun } from '../train/usePuzzleRun'
+import { usePuzzleRun, type Miss } from '../train/usePuzzleRun'
 
 const DURATION = 180000
 const PENALTY = 10000
@@ -22,12 +24,13 @@ export function Storm() {
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null)
   const [score, setScore] = useState(0)
   const [errors, setErrors] = useState(0)
+  const [misses, setMisses] = useState<Miss[]>([])
   const [deadline, setDeadline] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const seen = useRef(new Set<string>())
   const base = useRef(1200)
   const now = useNow(100, phase === 'run')
-  const left = phase === 'run' ? Math.max(0, deadline - now) : DURATION
+  const left = phase === 'run' ? Math.min(DURATION, Math.max(0, deadline - now)) : DURATION
 
   useEffect(() => {
     loadBucket('rapido')
@@ -51,6 +54,7 @@ export function Storm() {
     seen.current = new Set()
     setScore(0)
     setErrors(0)
+    setMisses([])
     setDeadline(Date.now() + DURATION + 550)
     setPhase('run')
     pick(0)
@@ -67,7 +71,7 @@ export function Storm() {
   }, [phase, left, finish])
 
   const onResolved = useCallback(
-    (ok: boolean, ms: number) => {
+    (ok: boolean, ms: number, miss?: Miss) => {
       if (!puzzle || phase !== 'run') return
       recordAttempt(puzzle, ok, ms, { rated: false, statsKey: 'relampago' })
       if (ok) {
@@ -76,19 +80,20 @@ export function Storm() {
         window.setTimeout(() => pick(n), 250)
       } else {
         setErrors((e) => e + 1)
+        if (miss) setMisses((x) => [...x, miss])
         setDeadline((d) => d - PENALTY)
-        window.setTimeout(() => pick(score), 900)
+        window.setTimeout(() => pick(score), 700)
       }
     },
     [puzzle, phase, score, pick],
   )
-  const run = usePuzzleRun(phase === 'run' ? puzzle : null, onResolved)
+  const run = usePuzzleRun(phase === 'run' ? puzzle : null, onResolved, { reveal: false })
   const view = run.view
   const low = left < 20000
 
   if (phase !== 'run')
     return (
-      <div className="page">
+      <div className={`page${phase === 'end' && misses.length ? ' page-train' : ''}`}>
         <div className="row">
           <button className="icon-btn" onClick={() => go('treinos')} aria-label="Voltar para treinos">
             <IconArrowLeft />
@@ -113,7 +118,7 @@ export function Storm() {
               ) : (
                 <>
                   <h3>3 minutos de padrões táticos</h3>
-                  <p className="muted">Problemas curtos (1 a 2 lances) de partidas reais, cada vez mais difíceis. Errou, perde 10 segundos e vai para o próximo. Treina reconhecimento rápido de padrão.</p>
+                  <p className="muted">Problemas curtos (1 a 2 lances) de partidas reais, cada vez mais difíceis. Errou, perde 10 segundos e vai para o próximo. No fim, cada erro vem explicado. Treina reconhecimento rápido de padrão.</p>
                 </>
               )}
             </div>
@@ -138,6 +143,7 @@ export function Storm() {
             )}
           </button>
         </div>
+        {phase === 'end' && misses.length > 0 && <MissReview misses={misses} />}
       </div>
     )
 

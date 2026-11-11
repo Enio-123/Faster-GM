@@ -7,11 +7,21 @@ App de treino diário de xadrez para quem quer subir de nível com disciplina: m
 | Modo | O que treina | Como funciona |
 | --- | --- | --- |
 | Escada de mate | Visualização de mates longos | Mate em 3, 4, 5, 6, 7 e 8+. Cada degrau abre com 8 acertos nas últimas 10 tentativas do degrau anterior. A primeira tentativa de cada problema vale para o rating de problemas (Glicko-1, no máximo 120 pontos por problema). Lance diferente do gabarito vale se o Stockfish confirmar mate no mesmo número de lances. |
+| Pressão de tempo | Decidir com o relógio correndo | 5, 10, 15, 20 ou 30 minutos de mates (até o degrau aberto na escada) ou de linhas táticas de 3 a 6+ lances, perto do seu rating. Errou, o app não mostra a solução e passa para o próximo. No fim, cada erro vem explicado. Os problemas errados vão para a revisão. |
 | Cálculo às cegas | Cálculo de linhas inteiras | As peças ficam paradas. Você digita a linha toda, seus lances e as respostas do adversário, e só no fim confere. Táticas ou mates, de 3 a 6+ lances, com três dificuldades. |
-| Sequência | Precisão sob pressão | Mates seguidos que ficam um lance mais longos a cada 3 acertos. Um erro encerra. |
-| Relâmpago | Reconhecimento de padrão | 3 minutos de problemas curtos. Erro tira 10 segundos. |
+| Sequência | Precisão sob pressão | Mates seguidos que ficam um lance mais longos a cada 3 acertos. Um erro encerra, e o erro vem explicado. |
+| Relâmpago | Reconhecimento de padrão | 3 minutos de problemas curtos. Erro tira 10 segundos. No fim, os erros vêm explicados. |
 | Revisão dos erros | Fixar o que você errou | Problemas errados e erros das suas partidas voltam em 1, 3, 7, 14, 30 e 60 dias. Errou, volta para o dia seguinte. |
 | Jogar contra o Tempo | Bullet e blitz | 1+0, 2+1, 3+0, 3+2, 5+0 e 5+3, com pré-lance. No fim, a análise do Stockfish marca imprecisões, erros e erros graves; erros e erros graves viram cartões de revisão. |
+
+## Erros explicados
+
+No fim da Pressão de tempo, do Relâmpago e da Sequência, cada erro aparece com o seu lance, o lance certo e o porquê, num tabuleiro onde dá para seguir a linha certa ou o seu lance com a resposta do adversário. Tudo o que o texto afirma vem de duas fontes conferíveis (`src/lib/explain.ts`):
+
+- As regras, pelo chess.js: xeque, xeque duplo e descoberto, captura, sacrifício (o adversário toma a peça e você fica pelo menos 2 pontos atrás nessa troca), garfo (mesma regra do Lichess), única resposta, lance quieto que ameaça mate, material ganho na linha, mate do corredor e mate sufocado.
+- O Stockfish, depois de cada rodada: a melhor resposta ao seu lance e a avaliação do seu lance e do lance certo. O veredito (erro grave, erro, imprecisão) usa a queda na chance de vitória, com os mesmos limites da análise das partidas.
+
+Sem o motor, a explicação fica só com os fatos das regras e diz que o motor não respondeu.
 
 ## Rotina diária
 

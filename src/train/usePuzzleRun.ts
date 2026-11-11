@@ -13,6 +13,30 @@ export type RunPhase = 'opening' | 'play' | 'reply' | 'checking' | 'solved' | 'f
 
 export interface RunEntry { san: string; me: boolean; ok?: boolean }
 
+/** Um erro guardado para a revisão no fim da rodada. */
+export interface Miss {
+  key: string
+  puzzle: Puzzle
+  /** Posição antes do erro (vez de quem resolve). */
+  fen: string
+  /** Seu lance, em UCI e SAN. */
+  played: string
+  playedSan: string
+  /** Lance do gabarito; null quando o motor já tinha assumido a defesa (outro caminho de mate). */
+  expected: string | null
+  /** Resto da solução a partir de `fen`, começando pelo lance certo (vazio quando expected é null). */
+  line: string[]
+  /** Lances de quem resolve que ainda faltavam, contando o do erro. */
+  remaining: number
+  /** Lances já jogados neste problema antes do erro (SAN). */
+  before: string[]
+}
+
+export interface RunOptions {
+  /** false: no erro, não mostra o lance certo (a explicação fica para o fim). Padrão: true. */
+  reveal?: boolean
+}
+
 export interface RunView {
   fen: string
   lastMove: { from: string; to: string } | null
@@ -33,7 +57,7 @@ function initial(p: Puzzle): RunView {
   return { fen: p.fen, lastMove: null, phase: 'opening', done: 0, marks: {}, arrows: [], failedOnce: false, startedAt: 0, endedAt: null, history: [], showing: false }
 }
 
-export function usePuzzleRun(puzzle: Puzzle | null, onResolved?: (ok: boolean, ms: number) => void) {
+export function usePuzzleRun(puzzle: Puzzle | null, onResolved?: (ok: boolean, ms: number, miss?: Miss) => void, opts: RunOptions = {}) {
   const [view, setView] = useState<RunView | null>(puzzle ? initial(puzzle) : null)
   const ply = useRef(1)
   const offline = useRef(false)
@@ -43,6 +67,8 @@ export function usePuzzleRun(puzzle: Puzzle | null, onResolved?: (ok: boolean, m
   viewRef.current = view
   const cb = useRef(onResolved)
   cb.current = onResolved
+  const reveal = useRef(opts.reveal !== false)
+  reveal.current = opts.reveal !== false
   const token = useRef(0)
 
   const later = (fn: () => void, ms: number) => {
@@ -78,12 +104,12 @@ export function usePuzzleRun(puzzle: Puzzle | null, onResolved?: (ok: boolean, m
     return clearTimers
   }, [puzzle, startFrom])
 
-  const resolve = (ok: boolean) => {
+  const resolve = (ok: boolean, miss?: Miss) => {
     if (resolved.current) return
     resolved.current = true
     const v = viewRef.current
     const ms = v ? Date.now() - v.startedAt : 0
-    cb.current?.(ok, ms)
+    cb.current?.(ok, ms, miss)
   }
 
   const finishSolved = () => {
@@ -109,9 +135,24 @@ export function usePuzzleRun(puzzle: Puzzle | null, onResolved?: (ok: boolean, m
     }, 320)
   }
 
-  const fail = (prevFen: string, wrong: { from: string; to: string; san: string }) => {
+  const fail = (prev: RunView, wrong: { from: string; to: string; san: string; uci: string }) => {
     playSound('error')
+    const prevFen = prev.fen
     const tk = token.current
+    const expected = !offline.current && puzzle ? puzzle.moves[ply.current] ?? null : null
+    const miss: Miss | undefined = puzzle
+      ? {
+          key: `${puzzle.id}:${ply.current}:${Date.now()}`,
+          puzzle,
+          fen: prevFen,
+          played: wrong.uci,
+          playedSan: wrong.san,
+          expected,
+          line: expected ? puzzle.moves.slice(ply.current) : [],
+          remaining: puzzle.length - prev.done,
+          before: prev.history.map((h) => h.san),
+        }
+      : undefined
     setView((v) =>
       v
         ? {
@@ -124,7 +165,9 @@ export function usePuzzleRun(puzzle: Puzzle | null, onResolved?: (ok: boolean, m
           }
         : v,
     )
-    resolve(false)
+    resolve(false, miss)
+    // Nos modos com revisão no fim, o lance errado fica marcado até o próximo problema.
+    if (!reveal.current) return
     // Volta a posição e aponta o lance certo.
     later(() => {
       if (tk !== token.current) return
@@ -188,7 +231,7 @@ export function usePuzzleRun(puzzle: Puzzle | null, onResolved?: (ok: boolean, m
       if (!puzzle.mate || remainingAfter <= 0) {
         // Lance diferente do gabarito: mostra o lance errado e conta como erro.
         setView((x) => (x ? { ...x, fen: c.fen(), lastMove: { from: mv.from, to: mv.to } } : x))
-        fail(v.fen, { from: mv.from, to: mv.to, san: mv.san })
+        fail(v, { from: mv.from, to: mv.to, san: mv.san, uci })
         return true
       }
       // Mate por outro caminho? O motor confere.
@@ -204,7 +247,7 @@ export function usePuzzleRun(puzzle: Puzzle | null, onResolved?: (ok: boolean, m
             offline.current = true
             accept(r.bestmove)
           } else {
-            fail(v.fen, { from: mv.from, to: mv.to, san: mv.san })
+            fail(v, { from: mv.from, to: mv.to, san: mv.san, uci })
           }
         })
       return true

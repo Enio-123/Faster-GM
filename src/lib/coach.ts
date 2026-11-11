@@ -25,6 +25,8 @@ const LINES = {
   draw: ['Empate. Dava pra mais?'],
   review: ['Esses são os seus erros. Eles voltam até você acertar sempre.'],
   calcIntro: ['Peças paradas. A linha toda é na cabeça.'],
+  pressure: ['Sem ajuda agora. No fim eu explico cada erro.', 'Relógio correndo. Calcula e joga.', 'Errou, segue. A explicação vem no fim.'],
+  pressureEnd: ['Agora sim: vamos ver cada erro com calma.', 'Fim do tempo. Os erros explicados estão aqui embaixo.'],
 }
 
 export type CoachEvent = keyof typeof LINES

@@ -38,6 +38,7 @@ export const ROUTE_BLOCK: Record<string, BlockId> = {
   relampago: 'aquecimento',
   sequencia: 'mate',
   mate: 'mate',
+  pressao: 'mate',
   calculo: 'calculo',
   jogar: 'partidas',
   erros: 'revisao',
