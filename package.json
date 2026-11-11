@@ -10,8 +10,7 @@
     "test": "vitest run",
     "typecheck": "tsc -b",
     "data": "node scripts/build-puzzles.mjs",
-    "artifact": "npm run build && node scripts/make-artifact.mjs",
-    "icons": "node scripts/make-icons.mjs"
+    "artifact": "npm run build && node scripts/make-artifact.mjs"
   },
   "dependencies": {
     "chess.js": "^1.4.0",
