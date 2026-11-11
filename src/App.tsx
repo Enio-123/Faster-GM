@@ -2,7 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import iconTile from './assets/brand/icone-96.webp'
 import { Intro } from './coach/Intro'
 import { useSettings, useSyncStatus } from './lib/state'
+import { Blind } from './pages/Blind'
 import { BlindCalc } from './pages/BlindCalc'
+import { BlindMemory } from './pages/BlindMemory'
+import { BlindPuzzles } from './pages/BlindPuzzles'
+import { BlindVision } from './pages/BlindVision'
 import { MateLadder } from './pages/MateLadder'
 import { Play } from './pages/Play'
 import { Pressure } from './pages/Pressure'
@@ -16,7 +20,7 @@ import { Train } from './pages/Train'
 import { useRoute } from './ui/hooks'
 import { IconPlay, IconProgress, IconSettings, IconToday, IconTrain } from './ui/icons'
 
-const TRAIN_ROUTES = new Set(['treinos', 'mate', 'pressao', 'sequencia', 'relampago', 'calculo', 'erros'])
+const TRAIN_ROUTES = new Set(['treinos', 'mate', 'pressao', 'sequencia', 'relampago', 'calculo', 'erros', 'cegas', 'cegas-visao', 'cegas-memoria', 'cegas-problemas', 'cegas-partida'])
 
 const NAV: { id: string; label: string; icon: () => ReactNode; match: (r: string) => boolean }[] = [
   { id: 'hoje', label: 'Hoje', icon: IconToday, match: (r) => r === 'hoje' },
@@ -39,10 +43,20 @@ function page(route: string) {
       return <Storm />
     case 'calculo':
       return <BlindCalc />
+    case 'cegas':
+      return <Blind />
+    case 'cegas-visao':
+      return <BlindVision />
+    case 'cegas-memoria':
+      return <BlindMemory />
+    case 'cegas-problemas':
+      return <BlindPuzzles />
+    case 'cegas-partida':
+      return <Play key="cegas" blind />
     case 'erros':
       return <Review />
     case 'jogar':
-      return <Play />
+      return <Play key="jogar" />
     case 'progresso':
       return <Progress />
     case 'ajustes':

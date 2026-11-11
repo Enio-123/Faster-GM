@@ -66,6 +66,18 @@
    "kept": 91,
    "min": 1351,
    "max": 2939
+  },
+  "mate1": {
+   "available": 2000,
+   "kept": 2000,
+   "min": 1200,
+   "max": 2530
+  },
+  "mate2": {
+   "available": 2000,
+   "kept": 2000,
+   "min": 1200,
+   "max": 2701
   }
  }
 }

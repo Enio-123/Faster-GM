@@ -172,7 +172,7 @@ export function BlindCalc() {
     <div className="page page-train">
       <div className="row-between">
         <div className="row">
-          <button className="icon-btn" onClick={() => go('treinos')} aria-label="Voltar para treinos">
+          <button className="icon-btn" onClick={() => go('cegas')} aria-label="Voltar para às cegas">
             <IconArrowLeft />
           </button>
           <h2>Cálculo às cegas</h2>

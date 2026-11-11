@@ -1,6 +1,7 @@
 // Partidas de bullet e blitz contra o Tempo (Stockfish com força limitada).
 // Relógio com incremento, pré-lance, queda de bandeira e análise automática no fim:
-// os erros viram cartões da revisão.
+// os erros viram cartões da revisão. Com `blind`, a mesma partida às cegas: peças invisíveis,
+// lances do Tempo falados e escritos, lance digitado, espiada contada e cadências mais lentas.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Chess } from 'chess.js'
 import { Board, type Arrow } from '../board/Board'
@@ -9,7 +10,8 @@ import { Coach, COACH_NAME, type Mood } from '../coach/Coach'
 import { getAnalysisEngine, getBotEngine, type AnalysisResult } from '../engine/engine'
 import type { Score } from '../engine/score'
 import { judge, JUDGEMENT_LABEL, winChance, type Judgement } from '../lib/analysis'
-import { BOT_MAX, BOT_MIN, ladderAfter, pickWeighted, recommend, searchFor, thinkTime, TIME_CONTROLS, type TimeControl } from '../lib/bot'
+import { BLIND_TIME_CONTROLS, BOT_MAX, BOT_MIN, ladderAfter, pickWeighted, recommend, searchFor, thinkTime, TIME_CONTROLS, type TimeControl } from '../lib/bot'
+import { sanSpeech, sanWords } from '../lib/blind'
 import { flagged, newClock, press, remaining, start as startClock, stop as stopClock, type Clock } from '../lib/clock'
 import { line } from '../lib/coach'
 import { addCards } from '../lib/progress'
@@ -18,11 +20,21 @@ import { setState, useAppState, useSettings, type GameRecord, type ReviewCard } 
 import { playSound, soundForSan } from '../lib/sound'
 import { uciToMove } from '../lib/puzzles'
 import { formatClock } from '../lib/time'
-import { useNow, useTrainingTimer } from '../ui/hooks'
-import { IconArrowLeft, IconArrowRight, IconFlag, IconFlip, IconRetry } from '../ui/icons'
+import { go, useNow, useTrainingTimer } from '../ui/hooks'
+import { IconArrowLeft, IconArrowRight, IconEye, IconFlag, IconFlip, IconRetry } from '../ui/icons'
+import { MoveInput } from '../train/MoveInput'
+import { useVoice } from '../train/useVoice'
 
 type Side = 'w' | 'b'
 type ColorPick = 'w' | 'b' | 'random'
+/** Ajuda na partida às cegas: tabuleiro vazio com a lista de lances, só o tabuleiro vazio, ou nada. */
+export type BlindHelp = 'lista' | 'vazio' | 'nada'
+const HELP: { id: BlindHelp; label: string; text: string }[] = [
+  { id: 'lista', label: 'Tabuleiro vazio e lances', text: 'Casas sem peças e a lista de lances à vista. O melhor jeito de começar.' },
+  { id: 'vazio', label: 'Só o tabuleiro vazio', text: 'Casas sem peças, sem lista de lances: a partida fica só na cabeça.' },
+  { id: 'nada', label: 'Sem tabuleiro', text: 'Nada na tela além dos lances anunciados. Você joga digitando, como às cegas de verdade.' },
+]
+const PEEK_MS = 3000
 
 interface GameState {
   chess: Chess
@@ -38,6 +50,9 @@ interface GameState {
   token: number
   id: string
   started: number
+  blind: boolean
+  help: BlindHelp
+  peeks: number
 }
 
 interface PlyAnalysis {
@@ -46,17 +61,32 @@ interface PlyAnalysis {
 }
 
 const SETUP_KEY = 'faster-gm:play-setup'
+const BLIND_SETUP_KEY = 'faster-gm:play-setup-cegas'
 const GOOD = '#3cc47c'
 const BAD = '#f0524f'
 
-function loadSetup(): { tc: string; color: ColorPick; elo: number | null } {
+interface Setup {
+  tc: string
+  color: ColorPick
+  elo: number | null
+  help: BlindHelp
+}
+
+function loadSetup(blind: boolean): Setup {
+  const list = blind ? BLIND_TIME_CONTROLS : TIME_CONTROLS
+  const base: Setup = { tc: blind ? '15+10' : '3+2', color: 'random', elo: null, help: 'lista' }
   try {
-    const v = JSON.parse(localStorage.getItem(SETUP_KEY) ?? '')
-    if (v && typeof v.tc === 'string') return v
+    const v = JSON.parse(localStorage.getItem(blind ? BLIND_SETUP_KEY : SETUP_KEY) ?? '')
+    if (v && typeof v.tc === 'string') {
+      const out = { ...base, ...v }
+      if (!list.some((t) => t.id === out.tc)) out.tc = base.tc
+      if (!HELP.some((h) => h.id === out.help)) out.help = 'lista'
+      return out
+    }
   } catch {
     /* sem armazenamento */
   }
-  return { tc: '3+2', color: 'random', elo: null }
+  return base
 }
 
 /** Sem peças para dar mate (só rei, ou rei com um cavalo ou um bispo). */
@@ -83,13 +113,22 @@ function sanOf(fen: string, uci: string | null): string {
   }
 }
 
-export function Play() {
+export function Play({ blind = false }: { blind?: boolean } = {}) {
   const s = useAppState()
   const settings = useSettings()
+  const voice = useVoice()
   const [screen, setScreen] = useState<'setup' | 'game'>('setup')
-  const [setup, setSetup] = useState(loadSetup)
+  const [setup, setSetup] = useState(() => loadSetup(blind))
   const rec = recommend(s.puzzle.r, s.puzzle.n, s.bot.ladder)
-  const elo = setup.elo ?? rec.elo
+  // Às cegas o nível sugerido começa 300 abaixo do recomendado para as partidas normais.
+  const recElo = blind ? Math.max(BOT_MIN, rec.elo - 300) : rec.elo
+  const elo = setup.elo ?? recElo
+  const tcList = blind ? BLIND_TIME_CONTROLS : TIME_CONTROLS
+  const [peekUntil, setPeekUntil] = useState(0)
+  const [said, setSaid] = useState<{ me?: string; bot?: string; botSan?: string }>({})
+  // O lance do bot é aplicado por uma função criada no primeiro render: a voz vai por referência.
+  const voiceRef = useRef(voice)
+  voiceRef.current = voice
   const g = useRef<GameState | null>(null)
   const [, setVersion] = useState(0)
   const bump = () => setVersion((v) => v + 1)
@@ -103,15 +142,15 @@ export function Play() {
   const botBusy = useRef(false)
 
   const game = g.current
-  useTrainingTimer('partidas', game?.status === 'playing')
+  useTrainingTimer(blind ? 'calculo' : 'partidas', game?.status === 'playing')
 
   useEffect(() => {
     try {
-      localStorage.setItem(SETUP_KEY, JSON.stringify(setup))
+      localStorage.setItem(blind ? BLIND_SETUP_KEY : SETUP_KEY, JSON.stringify(setup))
     } catch {
       /* sem armazenamento */
     }
-  }, [setup])
+  }, [setup, blind])
 
   // ---------- Fim de jogo ----------
   const finish = useCallback((result: GameRecord['result'], reason: string) => {
@@ -130,11 +169,13 @@ export function Play() {
     setMood(myScore === 1 ? 'sad' : myScore === 0 ? 'happy' : 'idle')
     setSpeech(myScore === 1 ? line('youWin') : myScore === 0 ? line('youLose') : line('draw'))
     const moves = gs.chess.history({ verbose: true }).map((m) => m.from + m.to + (m.promotion ?? ''))
-    const record: GameRecord = { id: gs.id, date: gs.started, tc: gs.tc.id, color: gs.me, botElo: gs.elo, result, reason, moves }
+    const record: GameRecord = { id: gs.id, date: gs.started, tc: gs.tc.id, color: gs.me, botElo: gs.elo, result, reason, moves, ...(gs.blind ? { blind: true, peeks: gs.peeks } : {}) }
+    // Partida às cegas não mexe no desempenho contra o bot que define o nível das partidas normais.
+    const counts = moves.length >= 2 && !gs.blind
     setState((st) => ({
       ...st,
       games: [record, ...st.games].slice(0, 60),
-      bot: { ladder: moves.length >= 2 ? ladderAfter(st.bot.ladder, myScore, gs.elo, st.bot.games) : st.bot.ladder, games: st.bot.games + (moves.length >= 2 ? 1 : 0) },
+      bot: { ladder: counts ? ladderAfter(st.bot.ladder, myScore, gs.elo, st.bot.games) : st.bot.ladder, games: st.bot.games + (counts ? 1 : 0) },
     }))
     bump()
   }, [])
@@ -153,20 +194,22 @@ export function Play() {
 
   /** Aplica um lance e aperta o relógio de quem jogou. */
   const apply = useCallback(
-    (gs: GameState, m: MoveIntent, now: number): boolean => {
+    (gs: GameState, m: MoveIntent, now: number) => {
       let mv
       try {
         mv = gs.chess.move({ from: m.from, to: m.to, promotion: m.promotion })
       } catch {
-        return false
+        return null
       }
       const ply = gs.chess.history().length
-      // O relógio só começa a correr depois do primeiro lance de cada lado.
-      if (ply === 2) gs.clock = startClock(gs.clock, 'w', now)
-      else if (ply > 2) gs.clock = press(gs.clock, mv.color as Side, now)
+      // O relógio só começa a correr depois do primeiro lance de cada lado (e não existe na partida livre).
+      if (gs.tc.base > 0) {
+        if (ply === 2) gs.clock = startClock(gs.clock, 'w', now)
+        else if (ply > 2) gs.clock = press(gs.clock, mv.color as Side, now)
+      }
       soundForSan(mv.san)
       checkEnd(gs)
-      return true
+      return mv
     },
     [checkEnd],
   )
@@ -191,7 +234,7 @@ export function Play() {
     setThinking(true)
     setMood('think')
     const left = remaining(gs.clock, gs.bot, started)
-    const budget = ply < 2 ? 400 + Math.random() * 600 : thinkTime(left, gs.tc.inc * 1000, ply)
+    const budget = ply < 2 ? 400 + Math.random() * 600 : gs.tc.base === 0 ? 700 + Math.random() * 1300 : thinkTime(left, gs.tc.inc * 1000, ply)
     const search = searchFor(gs.elo)
     const engine = getBotEngine()
     let uci: string | null = null
@@ -215,7 +258,11 @@ export function Play() {
       uci = legal[0].from + legal[0].to + (legal[0].promotion ?? '')
     }
     const now = Date.now()
-    apply(cur, uciToMove(uci), now)
+    const played = apply(cur, uciToMove(uci), now)
+    if (played && cur.blind) {
+      setSaid((x) => ({ ...x, bot: sanWords(played.san), botSan: played.san }))
+      voiceRef.current.say(sanSpeech(played.san))
+    }
     // Pré-lance guardado: sai na hora, se ainda for legal.
     if (cur.status === 'playing' && cur.premove) {
       const pm = cur.premove
@@ -251,7 +298,7 @@ export function Play() {
 
   // ---------- Início ----------
   const startGame = () => {
-    const tc = TIME_CONTROLS.find((t) => t.id === setup.tc) ?? TIME_CONTROLS[3]
+    const tc = tcList.find((t) => t.id === setup.tc) ?? tcList[blind ? 1 : 3]
     const me: Side = setup.color === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : setup.color
     g.current = {
       chess: new Chess(),
@@ -267,7 +314,12 @@ export function Play() {
       token: (g.current?.token ?? 0) + 1,
       id: Date.now().toString(36),
       started: Date.now(),
+      blind,
+      help: setup.help,
+      peeks: 0,
     }
+    setPeekUntil(0)
+    setSaid({})
     lowWarned.current = false
     analysisToken.current++
     getAnalysisEngine().stopAll()
@@ -277,7 +329,7 @@ export function Play() {
     setFlip(false)
     setThinking(false)
     setMood('focus')
-    setSpeech(line('gameStart'))
+    setSpeech(line(blind ? 'blindGame' : 'gameStart'))
     setScreen('game')
     playSound('start')
     bump()
@@ -287,12 +339,21 @@ export function Play() {
     (m: MoveIntent) => {
       const gs = g.current
       if (!gs || gs.status !== 'playing' || gs.chess.turn() !== gs.me) return false
-      const ok = apply(gs, m, Date.now())
+      const mv = apply(gs, m, Date.now())
+      if (mv && gs.blind) setSaid((x) => ({ ...x, me: sanWords(mv.san) }))
       bump()
-      return ok
+      return !!mv
     },
     [apply],
   )
+
+  const peek = () => {
+    const gs = g.current
+    if (!gs || gs.status !== 'playing') return
+    gs.peeks++
+    setPeekUntil(Date.now() + PEEK_MS)
+    bump()
+  }
   const onPremove = useCallback((m: MoveIntent | null) => {
     const gs = g.current
     if (!gs || gs.status !== 'playing') return
@@ -348,7 +409,7 @@ export function Play() {
           line: [plies[i].best!],
           bestWc: before,
           played: h.from + h.to + (h.promotion ?? ''),
-          note: `${JUDGEMENT_LABEL[j]} no lance ${moveNo}${gs.me === 'b' ? '...' : '.'} ${h.san} (partida ${gs.tc.id})`,
+          note: `${JUDGEMENT_LABEL[j]} no lance ${moveNo}${gs.me === 'b' ? '...' : '.'} ${h.san} (partida ${gs.blind ? 'às cegas ' : ''}${gs.tc.id})`,
           created: Date.now(),
         })
       }
@@ -372,8 +433,9 @@ export function Play() {
     color: game?.me ?? 'w',
     autoQueen: settings.autoQueen,
     onMove,
-    allowPremove: settings.premove,
+    allowPremove: settings.premove && !blind,
     onPremove,
+    flagEmpty: blind,
   })
 
   const judgements = useMemo(() => {
@@ -400,11 +462,17 @@ export function Play() {
 
   // ---------- Telas ----------
   if (screen === 'setup' || !game) {
-    const tcList = TIME_CONTROLS
+    const tcNow = tcList.find((t) => t.id === setup.tc) ?? tcList[0]
+    const recent = s.games.filter((x) => !!x.blind === blind)
     return (
       <div className="page">
         <div className="row">
-          <h1>Jogar</h1>
+          {blind && (
+            <button className="icon-btn" onClick={() => go('cegas')} aria-label="Voltar para às cegas">
+              <IconArrowLeft />
+            </button>
+          )}
+          <h1>{blind ? 'Partida às cegas' : 'Jogar'}</h1>
         </div>
         <div className="grid-2">
           <div className="panel stack-lg">
@@ -413,13 +481,15 @@ export function Play() {
               <div className="stack" style={{ gap: 4 }}>
                 <h3>{COACH_NAME}</h3>
                 <p className="muted" style={{ fontSize: 14 }}>
-                  O bot do Faster GM. Joga com o Stockfish limitado ao nível que você escolher.
+                  {blind
+                    ? 'As peças ficam invisíveis do começo ao fim. O Tempo fala e escreve os lances dele; você joga clicando nas casas do tabuleiro vazio ou digitando o lance.'
+                    : 'O bot do Faster GM. Joga com o Stockfish limitado ao nível que você escolher.'}
                 </p>
               </div>
             </div>
             <div className="field">
               <span className="label">Cadência</span>
-              <div className="seg seg-grid" role="group" aria-label="Cadência">
+              <div className={`seg seg-grid${blind ? ' seg-grid-2' : ''}`} role="group" aria-label="Cadência">
                 {tcList.map((t) => (
                   <button key={t.id} aria-pressed={setup.tc === t.id} onClick={() => setSetup({ ...setup, tc: t.id })}>
                     <span className="num">{t.label}</span> <span className="muted" style={{ fontWeight: 500 }}>{t.kind}</span>
@@ -456,20 +526,45 @@ export function Play() {
                 <span>{BOT_MAX}</span>
               </div>
             </div>
+            {blind && (
+              <div className="field">
+                <span className="label">Ajuda</span>
+                <div className="seg" role="group" aria-label="Ajuda">
+                  {HELP.map((h) => (
+                    <button key={h.id} aria-pressed={setup.help === h.id} onClick={() => setSetup({ ...setup, help: h.id })}>
+                      {h.label}
+                    </button>
+                  ))}
+                </div>
+                <span className="muted" style={{ fontSize: 13 }}>
+                  {HELP.find((h) => h.id === setup.help)?.text}
+                </span>
+                {voice.available && (
+                  <label className="row" style={{ gap: 8, fontSize: 14 }}>
+                    <input type="checkbox" checked={voice.on} onChange={(e) => voice.setOn(e.target.checked)} /> Falar os lances do {COACH_NAME} em voz alta
+                  </label>
+                )}
+              </div>
+            )}
             <button className="btn btn-primary btn-lg" onClick={startGame}>
-              Jogar {setup.tc}
+              {blind ? `Jogar às cegas ${tcNow.base ? tcNow.label : 'sem relógio'}` : `Jogar ${setup.tc}`}
             </button>
           </div>
           <div className="panel stack">
             <span className="eyebrow">Nível recomendado</span>
             <div className="row-between">
               <span className="num" style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 40, lineHeight: 1 }}>
-                {rec.elo}
+                {recElo}
               </span>
               <button className="btn btn-sm" onClick={() => setSetup({ ...setup, elo: null })} disabled={setup.elo === null}>
                 Usar o recomendado
               </button>
             </div>
+            {blind && (
+              <p className="muted" style={{ fontSize: 14 }}>
+                Às cegas o app sugere começar 300 abaixo do nível recomendado para as partidas normais ({rec.elo}). As partidas às cegas não mexem nesse nível.
+              </p>
+            )}
             <p className="muted" style={{ fontSize: 14 }}>
               {rec.fromPuzzles === null
                 ? `Por enquanto vem só do seu desempenho contra o ${COACH_NAME} (${rec.fromGames}). Depois de 10 problemas da escada, metade passa a vir do seu rating de problemas.`
@@ -479,23 +574,25 @@ export function Play() {
             <p className="muted" style={{ fontSize: 13 }}>
               A escala segue o UCI_Elo do Stockfish a partir de 1320; abaixo disso o bot escolhe entre os melhores lances com erros calculados. É aproximada e não equivale ao rating do chess.com nem da FIDE.
             </p>
-            {s.games.length > 0 && (
+            {recent.length > 0 && (
               <>
                 <hr className="divider" />
-                <span className="eyebrow">Últimas partidas</span>
+                <span className="eyebrow">{blind ? 'Últimas partidas às cegas' : 'Últimas partidas'}</span>
                 <div className="list">
-                  {s.games.slice(0, 5).map((x) => {
+                  {recent.slice(0, 5).map((x) => {
                     const sc = x.result === '1/2-1/2' ? 'Empate' : (x.result === '1-0') === (x.color === 'w') ? 'Vitória' : 'Derrota'
                     return (
                       <div key={x.id} className="list-row" style={{ padding: '10px 0' }}>
                         <span className={`pill ${sc === 'Vitória' ? 'pill-good' : sc === 'Derrota' ? 'pill-bad' : ''}`}>{sc}</span>
                         <div className="grow">
                           <div className="title" style={{ fontSize: 14 }}>
-                            {x.tc} contra nível {x.botElo}
+                            {x.tc === 'livre' ? 'Sem relógio' : x.tc} contra nível {x.botElo}
+                            {x.blind && !blind ? ' · às cegas' : ''}
                           </div>
                           <div className="sub">
                             {x.reason}
                             {x.blunders !== undefined ? ` · ${x.blunders} ${x.blunders === 1 ? 'erro grave' : 'erros graves'}` : ''}
+                            {x.blind ? ` · ${x.peeks ?? 0} ${x.peeks === 1 ? 'espiada' : 'espiadas'}` : ''}
                           </div>
                         </div>
                       </div>
@@ -527,10 +624,16 @@ export function Play() {
           <div className="name">{isBot ? `${COACH_NAME} · ${game.elo}` : 'Você'}</div>
           <div className="sub">{isBot ? (thinking ? 'pensando...' : side === 'w' ? 'brancas' : 'pretas') : side === 'w' ? 'brancas' : 'pretas'}</div>
         </div>
-        <div className={`clock${run ? ' run' : ''}${t < 10000 ? ' low' : ''}`}>{formatClock(t)}</div>
+        {game.tc.base > 0 && <div className={`clock${run ? ' run' : ''}${t < 10000 ? ' low' : ''}`}>{formatClock(t)}</div>}
       </div>
     )
   }
+
+  const peeking = peekUntil > now
+  const hide = game.blind && game.status === 'playing' && !peeking
+  const noBoard = hide && game.help === 'nada'
+  const myTurn = game.chess.turn() === game.me
+  const showMoves = !game.blind || game.status === 'over' || game.help === 'lista'
 
   const total = hist.length
   const pairs: { n: number; w?: string; b?: string; wi: number; bi: number }[] = []
@@ -549,11 +652,21 @@ export function Play() {
       <div className="train train-play">
         <div className="train-board">
           {playerRow(top)}
+          {noBoard ? (
+            <div className="blind-screen" aria-live="polite">
+              <span className="eyebrow">{myTurn ? 'Sua vez' : `Vez do ${COACH_NAME}`}</span>
+              <span className="big">{said.bot ?? (game.me === 'w' ? 'Você começa' : `${COACH_NAME} começa`)}</span>
+              {said.bot && <span className="muted">último lance do {COACH_NAME}</span>}
+              {said.me && <span className="mine">Seu último lance: {said.me}</span>}
+            </div>
+          ) : (
           <div className="board-frame">
             <Board
               fen={shownFen}
               orientation={orientation}
               ix={ix}
+              hidePieces={hide}
+              blind={hide}
               lastMove={last ? { from: last.from, to: last.to } : null}
               premove={game.premove}
               arrows={arrows}
@@ -563,6 +676,11 @@ export function Play() {
                     <span className="eyebrow">{game.reason}</span>
                     <span className="big">{myScore === 1 ? 'Vitória' : myScore === 0 ? 'Derrota' : 'Empate'}</span>
                     <span className="muted num">{game.result?.replace('1/2-1/2', '½-½')}</span>
+                    {game.blind && (
+                      <span className="muted">
+                        Às cegas · {game.peeks} {game.peeks === 1 ? 'espiada' : 'espiadas'}
+                      </span>
+                    )}
                     <div className="row" style={{ justifyContent: 'center' }}>
                       <button className="btn btn-primary" onClick={startGame}>
                         <IconRetry /> Revanche
@@ -576,6 +694,7 @@ export function Play() {
               }
             />
           </div>
+          )}
           {playerRow(bottom)}
         </div>
         <aside className="train-side">
@@ -583,6 +702,38 @@ export function Play() {
             <Coach mood={mood} />
             <div className="bubble">{thinking ? '...' : speech}</div>
           </div>
+          {game.blind && game.status === 'playing' && (
+            <div className="panel panel-tight stack" style={{ gap: 10 }}>
+              <div className="row-between">
+                <span className="eyebrow">{myTurn ? 'Sua vez' : `Vez do ${COACH_NAME}`}</span>
+                {said.botSan && voice.on && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => voice.say(sanSpeech(said.botSan!))}>
+                    Repetir o lance
+                  </button>
+                )}
+              </div>
+              {noBoard ? (
+                !said.bot && <span className="muted" style={{ fontSize: 14 }}>{game.me === 'w' ? 'Você começa. Digite o lance.' : `O ${COACH_NAME} começa. O lance dele aparece em cima e é falado.`}</span>
+              ) : said.bot ? (
+                <div className="announce" aria-live="polite">
+                  {COACH_NAME}: {said.bot}
+                </div>
+              ) : (
+                <span className="muted" style={{ fontSize: 14 }}>
+                  {game.me === 'w' ? 'Você começa. Clique na casa da peça e na casa de destino, ou digite o lance.' : `O ${COACH_NAME} começa. O lance dele aparece aqui e é falado.`}
+                </span>
+              )}
+              {said.me && !noBoard && (
+                <span className="muted" style={{ fontSize: 14 }}>
+                  Seu último lance: {said.me}
+                </span>
+              )}
+              <MoveInput fen={game.chess.fen()} disabled={!myTurn} onMove={onMove} autoFocus={game.help === 'nada'} />
+              <button className="btn btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={peek} disabled={peeking}>
+                <IconEye /> Espiar 3 s{game.peeks ? ` (${game.peeks})` : ''}
+              </button>
+            </div>
+          )}
           {game.status === 'playing' ? (
             <div className="row">
               <button className="btn btn-danger" onClick={resign}>
@@ -611,6 +762,7 @@ export function Play() {
             </div>
           )}
 
+          {showMoves && (
           <div className="panel panel-tight stack" style={{ gap: 8 }}>
             <div className="row-between">
               <span className="eyebrow">Lances</span>
@@ -655,9 +807,10 @@ export function Play() {
                   )}
                 </span>
               ))}
-              {!pairs.length && <span className="muted">{game.me === 'w' ? 'Sua vez. O relógio começa depois do primeiro lance de cada lado.' : `${COACH_NAME} começa.`}</span>}
+              {!pairs.length && <span className="muted">{game.me === 'w' ? (game.tc.base > 0 ? 'Sua vez. O relógio começa depois do primeiro lance de cada lado.' : 'Sua vez.') : `${COACH_NAME} começa.`}</span>}
             </div>
           </div>
+          )}
 
           {game.status === 'over' && analysis && (
             <div className="panel panel-tight stack">

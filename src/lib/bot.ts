@@ -76,7 +76,8 @@ export function recommend(puzzleRating: number, puzzleCount: number, ladder: num
   return { elo, fromPuzzles: fromPuzzles === null ? null : Math.round(fromPuzzles), fromGames: Math.round(ladder) }
 }
 
-export interface TimeControl { id: string; label: string; kind: 'Bullet' | 'Blitz'; base: number; inc: number }
+/** `base` 0: sem relógio. */
+export interface TimeControl { id: string; label: string; kind: 'Bullet' | 'Blitz' | 'Rápida' | 'Clássica' | 'sem relógio'; base: number; inc: number }
 export const TIME_CONTROLS: TimeControl[] = [
   { id: '1+0', label: '1+0', kind: 'Bullet', base: 60, inc: 0 },
   { id: '2+1', label: '2+1', kind: 'Bullet', base: 120, inc: 1 },
@@ -85,3 +86,12 @@ export const TIME_CONTROLS: TimeControl[] = [
   { id: '5+0', label: '5+0', kind: 'Blitz', base: 300, inc: 0 },
   { id: '5+3', label: '5+3', kind: 'Blitz', base: 300, inc: 3 },
 ]
+
+/** Cadências da partida às cegas: mais lentas, porque cada lance pede reconstruir a posição. */
+export const BLIND_TIME_CONTROLS: TimeControl[] = [
+  { id: '10+5', label: '10+5', kind: 'Rápida', base: 600, inc: 5 },
+  { id: '15+10', label: '15+10', kind: 'Rápida', base: 900, inc: 10 },
+  { id: '30+0', label: '30+0', kind: 'Clássica', base: 1800, inc: 0 },
+  { id: 'livre', label: 'Livre', kind: 'sem relógio', base: 0, inc: 0 },
+]
+

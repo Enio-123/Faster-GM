@@ -59,3 +59,30 @@ export function useNow(ms = 200, active = true): number {
   }, [ms, active])
   return now
 }
+
+/**
+ * Preferências de uma tela salvas neste aparelho (localStorage). `fix` corrige valores
+ * antigos ou inválidos. Sem armazenamento, valem só enquanto a tela estiver aberta.
+ */
+export function usePrefs<T extends object>(key: string, defaults: T, fix: (p: T) => T = (p) => p): [T, (p: Partial<T>) => void] {
+  const [prefs, setPrefs] = useState<T>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) || 'null') as Partial<T> | null
+      return fix({ ...defaults, ...(saved && typeof saved === 'object' ? saved : {}) })
+    } catch {
+      return defaults
+    }
+  })
+  const update = (p: Partial<T>) => {
+    setPrefs((cur) => {
+      const next = fix({ ...cur, ...p })
+      try {
+        localStorage.setItem(key, JSON.stringify(next))
+      } catch {
+        /* sem armazenamento */
+      }
+      return next
+    })
+  }
+  return [prefs, update]
+}

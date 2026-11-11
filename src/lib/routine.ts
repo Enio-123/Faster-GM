@@ -17,7 +17,7 @@ export interface Block {
 export const BLOCKS: Block[] = [
   { id: 'aquecimento', name: 'Aquecimento relâmpago', why: 'Padrões táticos em velocidade, 3 minutos por rodada.', weight: 0.1, route: 'relampago' },
   { id: 'mate', name: 'Escada de mate', why: 'Mates longos, do seu degrau atual. Visualizar até o fim antes de mexer.', weight: 0.25, route: 'mate' },
-  { id: 'calculo', name: 'Cálculo às cegas', why: 'A linha inteira na cabeça, com as peças paradas.', weight: 0.2, route: 'calculo' },
+  { id: 'calculo', name: 'Cálculo e às cegas', why: 'A linha inteira na cabeça e a trilha às cegas: casas, memória, problemas e partidas sem ver as peças.', weight: 0.2, route: 'cegas' },
   { id: 'partidas', name: 'Partidas contra o Tempo', why: 'Blitz e bullet no nível recomendado.', weight: 0.3, route: 'jogar' },
   { id: 'revisao', name: 'Revisão dos erros', why: 'Seus erros de partidas e problemas voltam até virar reflexo.', weight: 0.15, route: 'erros' },
 ]
@@ -40,6 +40,11 @@ export const ROUTE_BLOCK: Record<string, BlockId> = {
   mate: 'mate',
   pressao: 'mate',
   calculo: 'calculo',
+  cegas: 'calculo',
+  'cegas-visao': 'calculo',
+  'cegas-memoria': 'calculo',
+  'cegas-problemas': 'calculo',
+  'cegas-partida': 'calculo',
   jogar: 'partidas',
   erros: 'revisao',
 }

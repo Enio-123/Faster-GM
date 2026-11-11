@@ -16,10 +16,12 @@ export interface BoardOptions {
   /** Pré-lance: fora da vez, permite marcar um lance que sai assim que chegar a vez. */
   allowPremove?: boolean
   onPremove?: (m: MoveIntent | null) => void
+  /** Às cegas: clicar numa casa sem peça sua pisca em vermelho, como um "lance ilegal". */
+  flagEmpty?: boolean
 }
 
 /** Seleção, arrastar e soltar, promoção e pré-lance. As regras vêm sempre do chess.js. */
-export function useBoard({ fen, interactive, color, autoQueen, onMove, allowPremove, onPremove }: BoardOptions) {
+export function useBoard({ fen, interactive, color, autoQueen, onMove, allowPremove, onPremove, flagEmpty }: BoardOptions) {
   const [selected, setSelected] = useState<string | null>(null)
   const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string; color: Color } | null>(null)
   const [invalid, setInvalid] = useState<string | null>(null)
@@ -111,8 +113,9 @@ export function useBoard({ fen, interactive, color, autoQueen, onMove, allowPrem
       }
       if (piece && canPick(piece.color)) setSelected(sq)
       else if (premoveMode) onPremove?.(null)
+      else if (flagEmpty && interactive && myTurn) flashInvalid(sq)
     },
-    [chess, selected, pendingPromotion, canPick, tryMove, color, premoveMode, onPremove],
+    [chess, selected, pendingPromotion, canPick, tryMove, color, premoveMode, onPremove, flagEmpty, interactive, myTurn],
   )
 
   const onDrop = useCallback(

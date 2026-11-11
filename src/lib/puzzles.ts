@@ -3,7 +3,7 @@
 // Formato da linha: [id, fen antes do lance do adversário, lances UCI, rating].
 import { Chess } from 'chess.js'
 
-export type BucketId = 'mate3' | 'mate4' | 'mate5' | 'mate6' | 'mate7' | 'mate8' | 'calc3' | 'calc4' | 'calc5' | 'calc6' | 'rapido'
+export type BucketId = 'mate1' | 'mate2' | 'mate3' | 'mate4' | 'mate5' | 'mate6' | 'mate7' | 'mate8' | 'calc3' | 'calc4' | 'calc5' | 'calc6' | 'rapido'
 export type Row = [string, string, string, number]
 
 export interface Puzzle {

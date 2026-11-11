@@ -27,6 +27,11 @@ const LINES = {
   calcIntro: ['Peças paradas. A linha toda é na cabeça.'],
   pressure: ['Sem ajuda agora. No fim eu explico cada erro.', 'Relógio correndo. Calcula e joga.', 'Errou, segue. A explicação vem no fim.'],
   pressureEnd: ['Agora sim: vamos ver cada erro com calma.', 'Fim do tempo. Os erros explicados estão aqui embaixo.'],
+  blindHub: ['Quem joga às cegas calcula melhor de olhos abertos. Começa pela visão do tabuleiro.', 'Um passo de cada vez: primeiro as casas, depois as peças, depois a partida.'],
+  vision: ['Sem tabuleiro na tela. Ele tem que estar na sua cabeça.', 'Rápido e sem chutar. Conta se precisar.'],
+  memory: ['Olha com calma e grava. Depois eu escondo.', 'Fotografa a posição: reis primeiro, depois as peças grandes.'],
+  blindPuzzle: ['Grava a posição. Quando sumir, você resolve de memória.', 'Sem ver as peças. Calcula a linha inteira antes de jogar.'],
+  blindGame: ['Peças escondidas. Eu falo os meus lances, você guarda tudo.', 'Às cegas. Se perder o fio, espia, mas tenta não precisar.'],
 }
 
 export type CoachEvent = keyof typeof LINES

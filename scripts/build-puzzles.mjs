@@ -77,7 +77,15 @@ for (const f of files) {
     if (chess.isCheckmate()) {
       if (solverMoves >= 8) add('mate8', row)
       else if (solverMoves >= 3) add('mate' + solverMoves, row)
-      else add('rapido', row)
+      else {
+        add('rapido', row)
+        // Mates em 1 e em 2 também em pacotes próprios (problemas às cegas), separados por número de peças.
+        const start = new Chess(p.fen)
+        start.move(uciToMove(moves[0]))
+        const pieces = start.fen().split(' ')[0].replace(/[^a-zA-Z]/g, '').length
+        const band = pieces <= 10 ? 0 : pieces <= 16 ? 1 : 2
+        add(`mate${solverMoves}:${band}`, row)
+      }
     } else {
       if (solverMoves >= 6) add('calc6', row)
       else if (solverMoves >= 3) add('calc' + solverMoves, row)
@@ -115,6 +123,20 @@ function spread(rows, limit) {
   }
   return out.sort((a, b) => a[3] - b[3])
 }
+
+// Pacotes dos problemas às cegas: cota por faixa de peças (até 10, 11 a 16, 17 ou mais),
+// para o filtro "poucas peças" ter problemas suficientes.
+const BLIND_QUOTA = [900, 700, 400]
+for (const n of [1, 2]) {
+  const rows = []
+  BLIND_QUOTA.forEach((q, band) => {
+    const list = buckets[`mate${n}:${band}`] ?? []
+    delete buckets[`mate${n}:${band}`]
+    rows.push(...spread(list, q))
+  })
+  buckets[`mate${n}`] = rows
+}
+LIMITS.mate1 = LIMITS.mate2 = 2000
 
 const summary = {}
 for (const [name, rows] of Object.entries(buckets)) {

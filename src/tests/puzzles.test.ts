@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { fenAfter, numberedLine, pickRow, toPuzzle, toSan, uciToMove, type BucketId, type Row } from '../lib/puzzles'
 
 const DIR = join(__dirname, '../../public/puzzles')
-const BUCKETS: BucketId[] = ['mate3', 'mate4', 'mate5', 'mate6', 'mate7', 'mate8', 'calc3', 'calc4', 'calc5', 'calc6', 'rapido']
+const BUCKETS: BucketId[] = ['mate1', 'mate2', 'mate3', 'mate4', 'mate5', 'mate6', 'mate7', 'mate8', 'calc3', 'calc4', 'calc5', 'calc6', 'rapido']
 const load = (b: BucketId): Row[] => JSON.parse(readFileSync(join(DIR, `${b}.json`), 'utf8'))
 
 describe('pacotes de problemas', () => {

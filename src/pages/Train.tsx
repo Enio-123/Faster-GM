@@ -1,5 +1,5 @@
 import { MATE_LEVELS } from '../lib/puzzles'
-import { dueCards, isUnlocked, levelStats } from '../lib/progress'
+import { dueCards, isUnlocked } from '../lib/progress'
 import { useAppState } from '../lib/state'
 
 const ORDER = MATE_LEVELS.map((l) => l.id)
@@ -8,8 +8,12 @@ export function Train() {
   const s = useAppState()
   const top = [...MATE_LEVELS].reverse().find((l) => isUnlocked(s, ORDER, l.id)) ?? MATE_LEVELS[0]
   const due = dueCards(s).length
-  const calcTries = ['calc3', 'calc4', 'calc5', 'calc6', 'mate3', 'mate4', 'mate5', 'mate6'].reduce((a, b) => a + levelStats(s, 'cego-' + b).tries, 0)
+  // Tudo o que é treino às cegas: visão, memória, cálculo (cego-) e problemas (cegas-).
+  const blindTries = Object.entries(s.levels)
+    .filter(([k]) => /^(visao-|memoria$|cego-|cegas-)/.test(k))
+    .reduce((a, [, l]) => a + l.tries, 0)
   const pressureBest = Math.max(0, ...Object.values(s.records.pressure))
+  const blindGames = s.games.filter((g) => g.blind).length
 
   return (
     <div className="page">
@@ -38,15 +42,15 @@ export function Train() {
             <span className="pill num">recorde {pressureBest}</span>
           </div>
         </a>
-        <a className="mode" href="#calculo">
+        <a className="mode" href="#cegas">
           <div className="head">
-            <h3>Cálculo às cegas</h3>
-            <span className="pill">3 a 6+ lances</span>
+            <h3>Às cegas</h3>
+            <span className="pill pill-accent">5 etapas</span>
           </div>
-          <p>As peças ficam paradas. Você monta a linha inteira na cabeça, com as respostas do adversário, e só no fim confere.</p>
+          <p>Do mais simples ao mais difícil: visão do tabuleiro, memória da posição, cálculo às cegas, problemas sem ver as peças e partidas às cegas contra o Tempo, com os lances falados.</p>
           <div className="foot">
-            <span className="pill num">{calcTries} linhas</span>
-            {s.records.calcBest > 0 && <span className="pill num">maior certa: {s.records.calcBest}</span>}
+            <span className="pill num">{blindTries} {blindTries === 1 ? 'exercício' : 'exercícios'}</span>
+            {blindGames > 0 && <span className="pill num">{blindGames} {blindGames === 1 ? 'partida às cegas' : 'partidas às cegas'}</span>}
           </div>
         </a>
         <a className="mode" href="#sequencia">
@@ -74,7 +78,7 @@ export function Train() {
             <h3>Revisão dos erros</h3>
             <span className={`pill ${due ? 'pill-bad' : ''}`}>{due} hoje</span>
           </div>
-          <p>Seus erros das partidas contra o Tempo e os problemas que você errou na escada e na pressão de tempo voltam em intervalos crescentes até virar reflexo.</p>
+          <p>Seus erros das partidas contra o Tempo e os problemas que você errou na escada, na pressão de tempo e às cegas voltam em intervalos crescentes até virar reflexo.</p>
           <div className="foot">
             <span className="pill num">{s.review.length} cartões</span>
           </div>

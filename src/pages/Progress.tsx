@@ -1,4 +1,6 @@
 import { CALC_LEVELS, MATE_LEVELS } from '../lib/puzzles'
+import { BLIND_PUZZLE_TYPES } from './BlindPuzzles'
+import { VISION_DRILLS } from './BlindVision'
 import { isUnlocked, levelStats } from '../lib/progress'
 import { bestStreak, streak, totalSeconds } from '../lib/routine'
 import { useAppState, type GameRecord } from '../lib/state'
@@ -18,13 +20,20 @@ export function Progress() {
     .reduce((a, [, l]) => ({ tries: a.tries + l.tries, solved: a.solved + l.solved }), { tries: 0, solved: 0 })
   const target = s.settings.dailyMinutes
   const totalSec = Object.values(s.days).reduce((a, d) => a + totalSeconds(d), 0)
-  const analysed = s.games.filter((g) => g.blunders !== undefined)
+  // Partidas às cegas ficam à parte: não entram na consistência nem no placar das partidas normais.
+  const normalGames = s.games.filter((g) => !g.blind)
+  const blindGames = s.games.filter((g) => g.blind)
+  const blindRes = blindGames.reduce((a, g) => ({ ...a, [outcome(g)]: a[outcome(g)] + 1 }), { v: 0, e: 0, d: 0 })
+  const blindPeeks = blindGames.length ? blindGames.reduce((a, g) => a + (g.peeks ?? 0), 0) / blindGames.length : null
+  const memory = levelStats(s, 'memoria')
+  const memoryBest = Math.max(0, ...Object.entries(s.records.blind).filter(([k]) => k.startsWith('memoria-')).map(([, v]) => v))
+  const analysed = normalGames.filter((g) => g.blunders !== undefined)
   const recent = analysed.slice(0, 10)
   const before = analysed.slice(10, 20)
   const avg = (list: GameRecord[]) => (list.length ? list.reduce((a, g) => a + (g.blunders ?? 0) + (g.mistakes ?? 0), 0) / list.length : null)
   const recentAvg = avg(recent)
   const beforeAvg = avg(before)
-  const res = s.games.reduce((a, g) => ({ ...a, [outcome(g)]: a[outcome(g)] + 1 }), { v: 0, e: 0, d: 0 })
+  const res = normalGames.reduce((a, g) => ({ ...a, [outcome(g)]: a[outcome(g)] + 1 }), { v: 0, e: 0, d: 0 })
 
   return (
     <div className="page">
@@ -150,7 +159,7 @@ export function Progress() {
           <span className="eyebrow">Partidas contra o Tempo</span>
           <div className="stats">
             <div className="stat">
-              <span className="v">{s.games.length}</span>
+              <span className="v">{normalGames.length}</span>
               <span className="k">partidas</span>
             </div>
             <div className="stat">
@@ -170,9 +179,52 @@ export function Progress() {
               {recentAvg < beforeAvg ? 'Está errando menos.' : recentAvg > beforeAvg ? 'Está errando mais: mais revisão e partidas mais lentas ajudam.' : 'Igual.'}
             </p>
           )}
-          {s.games.length === 0 && <div className="empty">Nenhuma partida ainda.</div>}
+          {normalGames.length === 0 && <div className="empty">Nenhuma partida ainda.</div>}
         </section>
       </div>
+
+      <section className="panel stack">
+        <span className="eyebrow">Às cegas</span>
+        <div className="stats">
+          {VISION_DRILLS.map((d) => (
+            <div className="stat" key={d.id}>
+              <span className="v">{s.records.blind['visao-' + d.id] ?? 0}</span>
+              <span className="k">recorde em 1 min · {d.label.toLowerCase()}</span>
+            </div>
+          ))}
+          <div className="stat">
+            <span className="v">{memory.tries ? `${Math.round((memory.solved / memory.tries) * 100)}%` : '–'}</span>
+            <span className="k">acerto na memória da posição{memoryBest ? ` (melhor rodada ${memoryBest}/20)` : ''}</span>
+          </div>
+          <div className="stat">
+            <span className="v">{blindGames.length ? `${blindRes.v}/${blindRes.e}/${blindRes.d}` : '–'}</span>
+            <span className="k">partidas às cegas (vitórias, empates, derrotas){blindPeeks !== null ? ` · ${blindPeeks.toFixed(1).replace('.', ',')} espiadas por partida` : ''}</span>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table className="t">
+            <thead>
+              <tr>
+                <th>Problemas às cegas</th>
+                <th>Resolvidos</th>
+                <th>Acerto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {BLIND_PUZZLE_TYPES.map((t) => {
+                const st = levelStats(s, 'cegas-' + t.bucket)
+                return (
+                  <tr key={t.id}>
+                    <td>{t.label}</td>
+                    <td>{st.tries ? `${st.solved}/${st.tries}` : '–'}</td>
+                    <td>{st.tries ? `${Math.round((st.solved / st.tries) * 100)}%` : '–'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   )
 }

@@ -21,6 +21,10 @@ export interface BoardProps {
   overlay?: ReactNode
   /** Cálculo às cegas: esconde xeque e casas possíveis, que entregariam a posição imaginada. */
   blind?: boolean
+  /** Treino às cegas: tabuleiro vazio (as regras continuam valendo pela posição de `ix`). */
+  hidePieces?: boolean
+  /** Mostra ou esconde as coordenadas, por cima do ajuste do usuário. */
+  coordinates?: boolean
 }
 
 function squareXY(sq: string, orientation: 'w' | 'b') {
@@ -29,8 +33,9 @@ function squareXY(sq: string, orientation: 'w' | 'b') {
   return orientation === 'w' ? { x: f, y: 7 - r } : { x: 7 - f, y: r }
 }
 
-export function Board({ fen, orientation, ix, lastMove, arrows, marks, premove, overlay, blind }: BoardProps) {
+export function Board({ fen, orientation, ix, lastMove, arrows, marks, premove, overlay, blind, hidePieces, coordinates }: BoardProps) {
   const settings = useSettings()
+  const coords = coordinates ?? settings.coordinates
   const theme = getTheme(settings.boardTheme)
   const [tracked, setTracked] = useState<TrackedPiece[]>(() => trackPieces([], fen))
   const boardRef = useRef<HTMLDivElement>(null)
@@ -60,7 +65,8 @@ export function Board({ fen, orientation, ix, lastMove, arrows, marks, premove, 
     const sq = squareFromPoint(e.clientX, e.clientY)
     if (!sq) return
     const piece = ix.chess.get(sq as never) as { color: 'w' | 'b'; type: string } | undefined
-    if (piece && ix.canPick(piece.color) && !ix.pendingPromotion) {
+    // Sem peças à vista não há o que arrastar: o lance é clique na casa de saída e na de chegada.
+    if (piece && ix.canPick(piece.color) && !ix.pendingPromotion && !hidePieces) {
       dragStart.current = { x: e.clientX, y: e.clientY }
       setDrag({ from: sq, code: piece.color + piece.type, x: e.clientX, y: e.clientY, started: false })
       ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
@@ -102,8 +108,8 @@ export function Board({ fen, orientation, ix, lastMove, arrows, marks, premove, 
       if (mark) cls.push(`sq-mark-${mark}`)
       squares.push(
         <div key={sq} className={cls.join(' ')} style={{ background: squareBackground(theme, light, f, r), left: `${x * 12.5}%`, top: `${y * 12.5}%` }}>
-          {settings.coordinates && x === 0 && <span className="coord coord-rank" style={{ color: light ? theme.dark : theme.light }}>{r + 1}</span>}
-          {settings.coordinates && y === 7 && <span className="coord coord-file" style={{ color: light ? theme.dark : theme.light }}>{FILES[f]}</span>}
+          {coords && x === 0 && <span className="coord coord-rank" style={{ color: light ? theme.dark : theme.light }}>{r + 1}</span>}
+          {coords && y === 7 && <span className="coord coord-file" style={{ color: light ? theme.dark : theme.light }}>{FILES[f]}</span>}
           {settings.showLegal && !blind && targetSet.has(sq) && <span className={targetSet.get(sq) ? 'hint-capture' : 'hint-dot'} />}
         </div>,
       )
@@ -121,10 +127,11 @@ export function Board({ fen, orientation, ix, lastMove, arrows, marks, premove, 
       onPointerCancel={() => setDrag(null)}
       onContextMenu={(e) => e.preventDefault()}
       role="grid"
-      aria-label="Tabuleiro de xadrez"
+      aria-label={hidePieces ? 'Tabuleiro de xadrez sem as peças' : 'Tabuleiro de xadrez'}
+      data-hidden={hidePieces ? 'true' : undefined}
     >
       {squares}
-      {tracked.map((p) => {
+      {!hidePieces && tracked.map((p) => {
         const { x, y } = squareXY(p.square, orientation)
         const dragging = drag?.started && drag.from === p.square
         return (

@@ -97,6 +97,21 @@ export function recordAttempt(p: Puzzle, ok: boolean, ms: number, opts: { rated:
   return { ok, ms, ratingBefore: before, ratingAfter: after }
 }
 
+/** Estatística de um exercício que não é problema (visão do tabuleiro, memória). */
+export function recordStat(key: string, ok: boolean, ms = 0) {
+  setState((s) => {
+    const l = levelStats(s, key)
+    const level: LevelStats = {
+      tries: l.tries + 1,
+      solved: l.solved + (ok ? 1 : 0),
+      totalMs: l.totalMs + ms,
+      bestMs: ok && ms ? (l.bestMs ? Math.min(l.bestMs, ms) : ms) : l.bestMs,
+      recent: [...l.recent, ok ? 1 : 0].slice(-20),
+    }
+    return { ...s, levels: { ...s.levels, [key]: level } }
+  })
+}
+
 export function dueCards(s: AppState, now = Date.now()): ReviewCard[] {
   return s.review.filter((c) => c.due <= now).sort((a, b) => a.due - b.due)
 }

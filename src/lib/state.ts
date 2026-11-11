@@ -59,6 +59,10 @@ export interface GameRecord {
   blunders?: number
   mistakes?: number
   inaccuracies?: number
+  /** Partida às cegas: não mexe no seu desempenho contra o bot das partidas normais. */
+  blind?: boolean
+  /** Quantas vezes você espiou as peças na partida às cegas. */
+  peeks?: number
 }
 
 export interface AppState {
@@ -75,8 +79,11 @@ export interface AppState {
   seenSig: Record<string, string>
   /** Segundos de treino por dia e por bloco da rotina. */
   days: Record<string, Record<string, number>>
-  /** Recordes. `pressure`: acertos por formato da Pressão de tempo ("mate4-10" = mate em 4, 10 minutos). */
-  records: { seqBest: number; seqBestLevel: number; stormBest: number; calcBest: number; pressure: Record<string, number> }
+  /**
+   * Recordes. `pressure`: acertos por formato da Pressão de tempo ("mate4-10" = mate em 4, 10 minutos).
+   * `blind`: treino às cegas ("visao-cor" = acertos em 1 minuto, "memoria-12-2-10" = acertos em 20).
+   */
+  records: { seqBest: number; seqBestLevel: number; stormBest: number; calcBest: number; pressure: Record<string, number>; blind: Record<string, number> }
   bot: { ladder: number; games: number }
   review: ReviewCard[]
   games: GameRecord[]
@@ -107,7 +114,7 @@ export function initialState(now = Date.now()): AppState {
     seen: {},
     seenSig: {},
     days: {},
-    records: { seqBest: 0, seqBestLevel: 0, stormBest: 0, calcBest: 0, pressure: {} },
+    records: { seqBest: 0, seqBestLevel: 0, stormBest: 0, calcBest: 0, pressure: {}, blind: {} },
     bot: { ladder: 1200, games: 0 },
     review: [],
     games: [],
@@ -130,7 +137,7 @@ export function normalize(raw: unknown): AppState {
     settings,
     profile: { ...base.profile, ...(s.profile ?? {}) },
     puzzle: { ...base.puzzle, ...(s.puzzle ?? {}) },
-    records: { ...base.records, ...(s.records ?? {}), pressure: { ...(s.records?.pressure ?? {}) } },
+    records: { ...base.records, ...(s.records ?? {}), pressure: { ...(s.records?.pressure ?? {}) }, blind: { ...(s.records?.blind ?? {}) } },
     bot: { ...base.bot, ...(s.bot ?? {}) },
     levels: s.levels ?? {},
     seen: s.seen ?? {},
@@ -330,6 +337,13 @@ export function addTrainingSeconds(block: string, seconds: number) {
     day[block] = (day[block] ?? 0) + seconds
     return { ...s, days: { ...s.days, [key]: day } }
   })
+}
+
+/** Guarda um recorde do treino às cegas se for maior que o anterior. Devolve o recorde que fica. */
+export function recordBlind(key: string, value: number): number {
+  const prev = state.records.blind[key] ?? 0
+  if (value > prev) setState((s) => ({ ...s, records: { ...s.records, blind: { ...s.records.blind, [key]: value } } }))
+  return Math.max(prev, value)
 }
 
 export function exportJson(): string {
