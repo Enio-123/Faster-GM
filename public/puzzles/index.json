@@ -1,0 +1,71 @@
+{
+ "source": "Lichess puzzle database (CC0)",
+ "buckets": {
+  "rapido": {
+   "available": 828339,
+   "kept": 3000,
+   "min": 1200,
+   "max": 3172
+  },
+  "mate4": {
+   "available": 11085,
+   "kept": 2500,
+   "min": 1204,
+   "max": 2859
+  },
+  "mate3": {
+   "available": 38933,
+   "kept": 2500,
+   "min": 1200,
+   "max": 2795
+  },
+  "mate5": {
+   "available": 4442,
+   "kept": 2000,
+   "min": 1204,
+   "max": 3017
+  },
+  "mate6": {
+   "available": 1058,
+   "kept": 1058,
+   "min": 1308,
+   "max": 3005
+  },
+  "mate7": {
+   "available": 341,
+   "kept": 341,
+   "min": 1350,
+   "max": 2970
+  },
+  "calc3": {
+   "available": 339615,
+   "kept": 2000,
+   "min": 1200,
+   "max": 3174
+  },
+  "calc4": {
+   "available": 88907,
+   "kept": 2000,
+   "min": 1201,
+   "max": 3222
+  },
+  "calc5": {
+   "available": 88019,
+   "kept": 2000,
+   "min": 1200,
+   "max": 3273
+  },
+  "calc6": {
+   "available": 45002,
+   "kept": 2000,
+   "min": 1203,
+   "max": 3319
+  },
+  "mate8": {
+   "available": 91,
+   "kept": 91,
+   "min": 1351,
+   "max": 2939
+  }
+ }
+}

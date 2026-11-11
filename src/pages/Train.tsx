@@ -1,0 +1,84 @@
+import { MATE_LEVELS } from '../lib/puzzles'
+import { dueCards, isUnlocked, levelStats } from '../lib/progress'
+import { useAppState } from '../lib/state'
+
+const ORDER = MATE_LEVELS.map((l) => l.id)
+
+export function Train() {
+  const s = useAppState()
+  const top = [...MATE_LEVELS].reverse().find((l) => isUnlocked(s, ORDER, l.id)) ?? MATE_LEVELS[0]
+  const due = dueCards(s).length
+  const calcTries = ['calc3', 'calc4', 'calc5', 'calc6', 'mate3', 'mate4', 'mate5', 'mate6'].reduce((a, b) => a + levelStats(s, 'cego-' + b).tries, 0)
+
+  return (
+    <div className="page">
+      <div className="stack" style={{ gap: 6 }}>
+        <h1>Treinos</h1>
+        <p className="muted">Problemas reais de partidas, do mate em 3 até linhas de 14 lances.</p>
+      </div>
+      <div className="modes">
+        <a className="mode" href="#mate">
+          <div className="head">
+            <h3>Escada de mate</h3>
+            <span className="pill pill-accent">{top.label}</span>
+          </div>
+          <p>Mate em 3, 4, 5, 6, 7 e 8 ou mais. Cada degrau abre com 8 acertos nas últimas 10 tentativas do anterior. Vale para o rating de problemas.</p>
+          <div className="foot">
+            <span className="pill num">Rating {Math.round(s.puzzle.r)}</span>
+          </div>
+        </a>
+        <a className="mode" href="#calculo">
+          <div className="head">
+            <h3>Cálculo às cegas</h3>
+            <span className="pill">3 a 6+ lances</span>
+          </div>
+          <p>As peças ficam paradas. Você monta a linha inteira na cabeça, com as respostas do adversário, e só no fim confere.</p>
+          <div className="foot">
+            <span className="pill num">{calcTries} linhas</span>
+            {s.records.calcBest > 0 && <span className="pill num">maior certa: {s.records.calcBest}</span>}
+          </div>
+        </a>
+        <a className="mode" href="#sequencia">
+          <div className="head">
+            <h3>Sequência</h3>
+            <span className="pill">sem errar</span>
+          </div>
+          <p>Mates consecutivos que ficam mais longos a cada 3 acertos. Um erro encerra.</p>
+          <div className="foot">
+            <span className="pill num">recorde {s.records.seqBest}</span>
+          </div>
+        </a>
+        <a className="mode" href="#relampago">
+          <div className="head">
+            <h3>Relâmpago</h3>
+            <span className="pill">3 minutos</span>
+          </div>
+          <p>O máximo de problemas curtos em 3 minutos. Errou, perde 10 segundos. Velocidade de padrão.</p>
+          <div className="foot">
+            <span className="pill num">recorde {s.records.stormBest}</span>
+          </div>
+        </a>
+        <a className="mode" href="#erros">
+          <div className="head">
+            <h3>Revisão dos erros</h3>
+            <span className={`pill ${due ? 'pill-bad' : ''}`}>{due} hoje</span>
+          </div>
+          <p>Seus erros das partidas contra o Tempo e os problemas que você errou voltam em intervalos crescentes até virar reflexo.</p>
+          <div className="foot">
+            <span className="pill num">{s.review.length} cartões</span>
+          </div>
+        </a>
+        <a className="mode" href="#jogar">
+          <div className="head">
+            <h3>Jogar contra o Tempo</h3>
+            <span className="pill">bullet e blitz</span>
+          </div>
+          <p>Partidas de 1 a 5 minutos no nível recomendado pelos seus resultados. A análise no fim manda os erros para a revisão.</p>
+          <div className="foot">
+            <span className="pill num">{s.bot.games} partidas</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  )
+}
