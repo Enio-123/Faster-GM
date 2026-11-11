@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BOARD_THEMES } from '../board/themes'
+import { BOARD_THEMES, swatchBackground } from '../board/themes'
 import { ENGINE_NAME } from '../engine/engine'
 import { exportJson, importJson, resetAll, setState, useAppState, useSyncStatus, type Settings as S } from '../lib/state'
 
@@ -72,10 +72,10 @@ export function Settings() {
                   style={{ borderColor: s.settings.boardTheme === t.id ? 'var(--accent)' : undefined }}
                 >
                   <span style={{ display: 'inline-grid', gridTemplateColumns: 'repeat(2, 9px)', borderRadius: 2, overflow: 'hidden' }} aria-hidden="true">
-                    <span style={{ width: 9, height: 9, background: t.light }} />
-                    <span style={{ width: 9, height: 9, background: t.dark }} />
-                    <span style={{ width: 9, height: 9, background: t.dark }} />
-                    <span style={{ width: 9, height: 9, background: t.light }} />
+                    <span style={{ width: 9, height: 9, background: swatchBackground(t, true) }} />
+                    <span style={{ width: 9, height: 9, background: swatchBackground(t, false) }} />
+                    <span style={{ width: 9, height: 9, background: swatchBackground(t, false) }} />
+                    <span style={{ width: 9, height: 9, background: swatchBackground(t, true) }} />
                   </span>
                   {t.name}
                 </button>
@@ -185,7 +185,7 @@ export function Settings() {
           <div className="panel stack" style={{ fontSize: 13 }}>
             <span className="eyebrow">Créditos</span>
             <p className="muted">Problemas: base de puzzles do Lichess (domínio público, CC0), conferidos lance a lance no build.</p>
-            <p className="muted">Motor: {ENGINE_NAME}, licença GPL-3.0. Peças: cburnett (Colin M.L. Burnett), GPLv2+. Fontes: Barlow, SIL OFL.</p>
+            <p className="muted">Motor: {ENGINE_NAME}, licença GPL-3.0. Peças: cburnett (Colin M.L. Burnett), GPLv2+. Fontes: Barlow, SIL OFL. Sons das peças e do xeque: Pixabay.</p>
             <p className="muted">Tempo, o cavalo coroado do ícone, é o treinador e o bot do Faster GM.</p>
           </div>
         </section>

@@ -6,7 +6,7 @@ import type { Schedule } from './srs'
 import { dayKey } from './time'
 
 export type ThemePref = 'system' | 'dark' | 'light'
-export type BoardThemeId = 'aco' | 'torneio' | 'madeira'
+export type BoardThemeId = 'madeira' | 'aco' | 'torneio'
 
 export interface Settings {
   theme: ThemePref
@@ -63,6 +63,8 @@ export interface GameRecord {
 
 export interface AppState {
   v: 1
+  /** Revisão dos padrões. 2: a madeira virou o tabuleiro padrão (2026-11). */
+  rev?: number
   updatedAt: number
   settings: Settings
   profile: { created: number; chesscom?: number; otb?: number; onboarded?: boolean }
@@ -81,7 +83,7 @@ export interface AppState {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
-  boardTheme: 'aco',
+  boardTheme: 'madeira',
   sound: true,
   coordinates: true,
   showLegal: true,
@@ -94,6 +96,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export function initialState(now = Date.now()): AppState {
   return {
     v: 1,
+    rev: 2,
     updatedAt: 0,
     settings: { ...DEFAULT_SETTINGS },
     profile: { created: now },
@@ -115,11 +118,15 @@ export function normalize(raw: unknown): AppState {
   const base = initialState()
   if (!raw || typeof raw !== 'object') return base
   const s = raw as Partial<AppState>
+  const settings = { ...base.settings, ...(s.settings ?? {}) }
+  // Quem ainda estava no tabuleiro padrão antigo (aço) passa uma vez para a madeira.
+  if ((s.rev ?? 0) < 2 && settings.boardTheme === 'aco') settings.boardTheme = 'madeira'
   return {
     ...base,
     ...s,
     v: 1,
-    settings: { ...base.settings, ...(s.settings ?? {}) },
+    rev: 2,
+    settings,
     profile: { ...base.profile, ...(s.profile ?? {}) },
     puzzle: { ...base.puzzle, ...(s.puzzle ?? {}) },
     records: { ...base.records, ...(s.records ?? {}) },

@@ -279,6 +279,7 @@ export function Play() {
     setMood('focus')
     setSpeech(line('gameStart'))
     setScreen('game')
+    playSound('start')
     bump()
   }
 

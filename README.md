@@ -25,6 +25,8 @@ O bot se chama Tempo e é o cavalo coroado do ícone, o mesmo que aparece como t
 
 - Problemas: base de puzzles do Lichess (domínio público, CC0). Os pacotes em `public/puzzles` foram montados por `scripts/build-puzzles.mjs`, que refaz cada problema lance a lance com chess.js e confere que os pacotes de mate terminam em xeque-mate. Os testes repetem essa conferência.
 - Motor: Stockfish 18 lite (WASM, 1 thread) em `public/engine`, rodando num Web Worker.
+- Visual: marrom do ícone (pau-rosa), tabuleiro de madeira por padrão (aço e torneio em Ajustes).
+- Sons: lance, captura, xeque, mate (a batida do xeque duas vezes) e início de partida vêm de gravações em `src/assets/sons`.
 - Progresso: salvo no aparelho (localStorage). Dentro do Claude também é salvo na conta, e em Ajustes há backup e restauração por texto.
 
 ## Rodar

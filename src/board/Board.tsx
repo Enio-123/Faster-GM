@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useSettings } from '../lib/state'
-import { getTheme } from './themes'
+import { getTheme, squareBackground } from './themes'
 import { pieceUrl } from './pieces'
 import { trackPieces, type TrackedPiece } from './tracking'
 import type { BoardInteraction } from './useBoard'
@@ -101,7 +101,7 @@ export function Board({ fen, orientation, ix, lastMove, arrows, marks, premove, 
       if (!blind && ix.checkSquare === sq) cls.push('sq-check')
       if (mark) cls.push(`sq-mark-${mark}`)
       squares.push(
-        <div key={sq} className={cls.join(' ')} style={{ background: light ? theme.light : theme.dark, left: `${x * 12.5}%`, top: `${y * 12.5}%` }}>
+        <div key={sq} className={cls.join(' ')} style={{ background: squareBackground(theme, light, f, r), left: `${x * 12.5}%`, top: `${y * 12.5}%` }}>
           {settings.coordinates && x === 0 && <span className="coord coord-rank" style={{ color: light ? theme.dark : theme.light }}>{r + 1}</span>}
           {settings.coordinates && y === 7 && <span className="coord coord-file" style={{ color: light ? theme.dark : theme.light }}>{FILES[f]}</span>}
           {settings.showLegal && !blind && targetSet.has(sq) && <span className={targetSet.get(sq) ? 'hint-capture' : 'hint-dot'} />}

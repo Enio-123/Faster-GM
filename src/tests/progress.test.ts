@@ -91,6 +91,13 @@ describe('backup', () => {
     expect(getState().puzzle.n).toBe(1)
     expect(importJson('não é json')).toBe(false)
   })
+  it('passa quem estava no tabuleiro padrão antigo para a madeira, uma vez só', () => {
+    expect(normalize({ settings: { boardTheme: 'aco' } }).settings.boardTheme).toBe('madeira')
+    expect(normalize({ settings: { boardTheme: 'torneio' } }).settings.boardTheme).toBe('torneio')
+    // Depois da migração (rev 2), escolher o aço de novo fica valendo.
+    expect(normalize({ rev: 2, settings: { boardTheme: 'aco' } }).settings.boardTheme).toBe('aco')
+    expect(initialState().settings.boardTheme).toBe('madeira')
+  })
   it('completa campos de versões antigas', () => {
     const s = normalize({ settings: { sound: false }, games: 'x' })
     expect(s.settings.sound).toBe(false)
