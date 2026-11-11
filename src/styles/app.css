@@ -249,6 +249,15 @@ a.list-row:hover .title, button.list-row:hover .title { color: var(--accent-stro
 .empty { padding: 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--r-lg); }
 .notice { padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); color: var(--muted); font-size: var(--fs-sm); }
 .notice-bad { background: var(--bad-soft); color: var(--bad); }
+.install-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 16px; }
+.install-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-text); }
+.install-icon svg { width: 22px; height: 22px; }
+.install-actions { flex-wrap: nowrap; }
+@media (max-width: 640px) {
+  .install-card { grid-template-columns: auto minmax(0, 1fr); }
+  .install-actions { grid-column: 1 / -1; }
+  .install-actions .btn { flex: 1; }
+}
 
 /* ---------- Hoje ---------- */
 .today-hero { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 24px; align-items: center; }

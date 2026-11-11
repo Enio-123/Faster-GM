@@ -102,3 +102,10 @@ export const IconFlip = () => (
     <path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3" />
   </I>
 )
+export const IconInstall = () => (
+  <I>
+    <path d="M12 3.5v11" />
+    <path d="M7.5 10l4.5 4.5 4.5-4.5" />
+    <path d="M4 15.5v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+  </I>
+)

@@ -43,6 +43,10 @@ npm run artifact   # gera dist/app.html, a versão publicada dentro do Claude
 
 O workflow `.github/workflows/pages.yml` publica a cada push na `main`. Antes do primeiro deploy, em Settings > Pages, escolha Source: GitHub Actions. No GitHub Pages o app funciona offline depois da primeira visita (service worker) e pode ser instalado no celular.
 
+Instalação: o app tem o próprio botão Instalar (aviso na tela Hoje e bloco em Ajustes), que usa o evento `beforeinstallprompt`. Ele existe porque o Chrome do Android, desde a versão 154, erra no menu "Instalar app": quando outro app do mesmo endereço (`enio-123.github.io`) já está instalado, o menu diz que este também está ([correção no Chromium](https://chromium-review.googlesource.com/c/chromium/src/+/8556881)). O caminho do `beforeinstallprompt` confere pelo escopo de cada app e não tem esse erro.
+
+Atualização: a navegação sempre busca a página na rede, e o service worker do mesmo build assume na hora (a página manda o identificador do build e ele só aceita se for o dele). Manifesto e ícones vêm da rede primeiro, para o navegador ver o nome e o ícone atuais.
+
 ## Licenças
 
 Veja [LICENSES.md](LICENSES.md).

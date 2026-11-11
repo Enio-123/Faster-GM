@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BOARD_THEMES, swatchBackground } from '../board/themes'
 import { ENGINE_NAME } from '../engine/engine'
 import { exportJson, importJson, resetAll, setState, useAppState, useSyncStatus, type Settings as S } from '../lib/state'
+import { InstallPanel } from '../ui/Install'
 
 const SYNC_TEXT = {
   local: 'Salvo neste aparelho. Use o backup abaixo para não perder o progresso.',
@@ -98,6 +99,7 @@ export function Settings() {
         </section>
 
         <section className="stack-lg">
+          <InstallPanel />
           <div className="panel stack">
             <span className="eyebrow">Perfil</span>
             <div className="row">

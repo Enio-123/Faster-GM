@@ -7,6 +7,7 @@ import { blockMinutes, BLOCKS, dayComplete, nextBlock, streak, totalSeconds } fr
 import { setState, useAppState } from '../lib/state'
 import { addDays, dayKey, formatMinutes, weekdayShort } from '../lib/time'
 import { go } from '../ui/hooks'
+import { InstallCard } from '../ui/Install'
 import { IconArrowRight, IconCheck } from '../ui/icons'
 
 const PRESETS = [60, 90, 120, 180, 240]
@@ -46,6 +47,8 @@ export function Today() {
           <p className="speech">{speech}</p>
         </div>
       </section>
+
+      <InstallCard />
 
       {firstRun && <FirstRun />}
 
