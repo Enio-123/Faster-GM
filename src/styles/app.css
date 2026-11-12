@@ -253,6 +253,12 @@ a.list-row:hover .title, button.list-row:hover .title { color: var(--accent-stro
 .install-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-text); }
 .install-icon svg { width: 22px; height: 22px; }
 .install-actions { flex-wrap: nowrap; }
+/* Conta */
+.account-panel { max-width: 680px; }
+.account-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+.account-name { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-lg); overflow-wrap: anywhere; }
+.account-form { max-width: 420px; }
+.account-hint { font-size: 13px; }
 @media (max-width: 640px) {
   .install-card { grid-template-columns: auto minmax(0, 1fr); }
   .install-actions { grid-column: 1 / -1; }

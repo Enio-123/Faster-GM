@@ -1,12 +1,11 @@
 import { MATE_LEVELS } from '../lib/puzzles'
-import { dueCards, isUnlocked } from '../lib/progress'
+import { dueCards } from '../lib/progress'
 import { useAppState } from '../lib/state'
-
-const ORDER = MATE_LEVELS.map((l) => l.id)
+import { savedMateLevel } from './MateLadder'
 
 export function Train() {
   const s = useAppState()
-  const top = [...MATE_LEVELS].reverse().find((l) => isUnlocked(s, ORDER, l.id)) ?? MATE_LEVELS[0]
+  const current = MATE_LEVELS.find((l) => l.id === savedMateLevel()) ?? MATE_LEVELS[0]
   const due = dueCards(s).length
   // Tudo o que é treino às cegas: visão, memória, cálculo (cego-) e problemas (cegas-).
   const blindTries = Object.entries(s.levels)
@@ -25,9 +24,9 @@ export function Train() {
         <a className="mode" href="#mate">
           <div className="head">
             <h3>Escada de mate</h3>
-            <span className="pill pill-accent">{top.label}</span>
+            <span className="pill pill-accent">{current.label}</span>
           </div>
-          <p>Mate em 3, 4, 5, 6, 7 e 8 ou mais. Cada degrau abre com 8 acertos nas últimas 10 tentativas do anterior. Vale para o rating de problemas.</p>
+          <p>Mate em 3, 4, 5, 6, 7 e 8 ou mais. Todos os degraus já vêm abertos: escolha o tamanho do mate. Vale para o rating de problemas.</p>
           <div className="foot">
             <span className="pill num">Rating {Math.round(s.puzzle.r)}</span>
           </div>

@@ -2,7 +2,7 @@
 // No fim, cada erro vem explicado: o seu lance, o lance certo e o porquê.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CALC_LEVELS, loadBucket, MATE_LEVELS, pickRow, toPuzzle, type BucketId, type Puzzle, type Row } from '../lib/puzzles'
-import { isUnlocked, markSeen, recordAttempt, seenSet } from '../lib/progress'
+import { markSeen, recordAttempt, seenSet } from '../lib/progress'
 import { getState, setState, useAppState } from '../lib/state'
 import { line } from '../lib/coach'
 import { playSound } from '../lib/sound'
@@ -67,10 +67,7 @@ function levelLabel(bucket: BucketId): string {
 
 export function Pressure() {
   const s = useAppState()
-  const [prefs, setPrefs] = useState<Prefs>(() => {
-    const p = loadPrefs()
-    return isUnlocked(getState(), MATE_ORDER, p.mate) ? p : { ...p, mate: 'mate3' }
-  })
+  const [prefs, setPrefs] = useState<Prefs>(loadPrefs)
   const bucket = prefs.kind === 'mate' ? prefs.mate : prefs.calc
   useTrainingTimer(prefs.kind === 'mate' ? 'mate' : 'calculo')
   const [phase, setPhase] = useState<'start' | 'run' | 'end'>('start')
@@ -286,7 +283,6 @@ export function Pressure() {
     )
   }
 
-  const mateOpen = MATE_LEVELS.map((l) => ({ ...l, open: isUnlocked(s, MATE_ORDER, l.id) }))
   return (
     <div className="page">
       <div className="row">
@@ -323,8 +319,8 @@ export function Pressure() {
           <span className="eyebrow">{prefs.kind === 'mate' ? 'Mate em' : 'Tamanho da linha'}</span>
           {prefs.kind === 'mate' ? (
             <div className="seg" style={{ alignSelf: 'flex-start' }} role="group" aria-label="Mate em">
-              {mateOpen.map((l) => (
-                <button key={l.id} aria-pressed={prefs.mate === l.id} disabled={!l.open} onClick={() => update({ mate: l.id })} title={l.open ? l.label : 'Abre na escada de mate'}>
+              {MATE_LEVELS.map((l) => (
+                <button key={l.id} aria-pressed={prefs.mate === l.id} onClick={() => update({ mate: l.id })} title={l.label}>
                   {l.n === 8 ? '8+' : l.n}
                 </button>
               ))}
@@ -338,7 +334,6 @@ export function Pressure() {
               ))}
             </div>
           )}
-          {prefs.kind === 'mate' && mateOpen.some((l) => !l.open) && <span className="muted" style={{ fontSize: 13 }}>Os mates mais longos abrem na escada de mate.</span>}
         </div>
 
         <div className="stack" style={{ gap: 8 }}>

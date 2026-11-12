@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
-import { answerCard, dueCards, isUnlocked, recordAttempt, addCards } from '../lib/progress'
-import { MATE_LEVELS, type Puzzle } from '../lib/puzzles'
+import { answerCard, dueCards, recordAttempt, addCards } from '../lib/progress'
+import { type Puzzle } from '../lib/puzzles'
 import { compactJson, getState, initialState, normalize, setState, exportJson, importJson, resetAll } from '../lib/state'
 
-const ORDER = MATE_LEVELS.map((l) => l.id)
 const puzzle = (id: string, rating = 1500): Puzzle => ({
   id,
   bucket: 'mate3',
@@ -18,24 +17,6 @@ const puzzle = (id: string, rating = 1500): Puzzle => ({
 
 beforeEach(() => {
   setState(() => initialState())
-})
-
-describe('escada de mate', () => {
-  it('o primeiro degrau começa aberto e o segundo abre com 8 de 10', () => {
-    expect(isUnlocked(getState(), ORDER, 'mate3')).toBe(true)
-    expect(isUnlocked(getState(), ORDER, 'mate4')).toBe(false)
-    // 7 acertos e 3 erros: 7 de 10, ainda fechado.
-    for (let i = 0; i < 7; i++) recordAttempt(puzzle('a' + i), true, 1000, { rated: true })
-    for (let i = 0; i < 3; i++) recordAttempt(puzzle('b' + i), false, 1000, { rated: true })
-    expect(isUnlocked(getState(), ORDER, 'mate4')).toBe(false)
-    // Mais 7 acertos: os 3 erros continuam entre os últimos 10.
-    for (let i = 0; i < 7; i++) recordAttempt(puzzle('c' + i), true, 1000, { rated: true })
-    expect(isUnlocked(getState(), ORDER, 'mate4')).toBe(false)
-    // O 8º acerto empurra um erro para fora: 8 de 10.
-    recordAttempt(puzzle('d'), true, 1000, { rated: true })
-    expect(isUnlocked(getState(), ORDER, 'mate4')).toBe(true)
-    expect(isUnlocked(getState(), ORDER, 'mate5')).toBe(false)
-  })
 })
 
 describe('tentativas', () => {

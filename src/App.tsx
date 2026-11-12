@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import iconTile from './assets/brand/icone-96.webp'
 import { Intro } from './coach/Intro'
+import { useAccount } from './lib/account'
 import { useSettings, useSyncStatus } from './lib/state'
 import { Blind } from './pages/Blind'
 import { BlindCalc } from './pages/BlindCalc'
@@ -84,6 +85,7 @@ export function App() {
   const route = useRoute()
   const settings = useSettings()
   const sync = useSyncStatus()
+  const account = useAccount()
   const mainRef = useRef<HTMLElement>(null)
   const [intro, setIntro] = useState(() => {
     if (!settings.intro) return false
@@ -134,7 +136,15 @@ export function App() {
             </a>
           </nav>
           <div className="rail-foot">
-            <span>{sync === 'synced' || sync === 'saving' ? 'Progresso salvo na sua conta' : 'Progresso salvo neste aparelho'}</span>
+            <span>
+              {account.loggedIn
+                ? `Conta ${account.usuario} · ${account.status === 'synced' ? 'sincronizada' : account.status === 'offline' ? 'sem conexão' : account.status === 'error' ? 'não salvou agora' : 'sincronizando'}`
+                : account.expired
+                  ? 'Entre de novo na conta'
+                  : sync === 'synced' || sync === 'saving'
+                    ? 'Progresso salvo na sua conta'
+                    : 'Progresso salvo neste aparelho'}
+            </span>
           </div>
         </aside>
         <header className="topbar">

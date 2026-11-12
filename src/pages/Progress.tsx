@@ -1,12 +1,10 @@
 import { CALC_LEVELS, MATE_LEVELS } from '../lib/puzzles'
 import { BLIND_PUZZLE_TYPES } from './BlindPuzzles'
 import { VISION_DRILLS } from './BlindVision'
-import { isUnlocked, levelStats } from '../lib/progress'
+import { levelStats } from '../lib/progress'
 import { bestStreak, streak, totalSeconds } from '../lib/routine'
 import { useAppState, type GameRecord } from '../lib/state'
 import { addDays, dayKey, formatMinutes, formatSolve } from '../lib/time'
-
-const ORDER = MATE_LEVELS.map((l) => l.id)
 
 function outcome(g: GameRecord): 'v' | 'e' | 'd' {
   if (g.result === '1/2-1/2') return 'e'
@@ -89,7 +87,6 @@ export function Progress() {
                 <th>Acertos</th>
                 <th>Tempo médio</th>
                 <th>Melhor</th>
-                <th>Situação</th>
               </tr>
             </thead>
             <tbody>
@@ -102,7 +99,6 @@ export function Progress() {
                     <td>{st.tries ? `${Math.round((st.solved / st.tries) * 100)}%` : '–'}</td>
                     <td>{st.tries ? formatSolve(st.totalMs / st.tries) : '–'}</td>
                     <td>{st.bestMs ? formatSolve(st.bestMs) : '–'}</td>
-                    <td>{isUnlocked(s, ORDER, l.id) ? <span className="pill pill-good">aberto</span> : <span className="pill">bloqueado</span>}</td>
                   </tr>
                 )
               })}

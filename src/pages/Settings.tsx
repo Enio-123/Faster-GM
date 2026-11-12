@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { BOARD_THEMES, swatchBackground } from '../board/themes'
 import { ENGINE_NAME } from '../engine/engine'
 import { exportJson, importJson, resetAll, setState, useAppState, useSyncStatus, type Settings as S } from '../lib/state'
+import { useAccount } from '../lib/account'
+import { AccountPanel } from '../ui/Account'
 import { InstallPanel } from '../ui/Install'
 
 const SYNC_TEXT = {
@@ -15,6 +17,7 @@ const SYNC_TEXT = {
 export function Settings() {
   const s = useAppState()
   const sync = useSyncStatus()
+  const account = useAccount()
   const [importText, setImportText] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
@@ -43,6 +46,7 @@ export function Settings() {
   return (
     <div className="page">
       <h1>Ajustes</h1>
+      <AccountPanel />
       <div className="grid-2">
         <section className="panel stack-lg">
           <div className="field">
@@ -134,7 +138,11 @@ export function Settings() {
 
           <div className="panel stack">
             <span className="eyebrow">Seus dados</span>
-            <p style={{ fontSize: 14 }}>{SYNC_TEXT[sync]}</p>
+            <p style={{ fontSize: 14 }}>
+              {account.loggedIn
+                ? `Salvo na sua conta (${account.usuario}) e neste aparelho. Restaurar um backup ou apagar o progresso vale para a conta, em todos os aparelhos.`
+                : SYNC_TEXT[sync]}
+            </p>
             <div className="row">
               <button className="btn" onClick={copy}>
                 Copiar backup
@@ -162,7 +170,9 @@ export function Settings() {
             <hr className="divider" />
             {confirmReset ? (
               <div className="row">
-                <span style={{ fontSize: 14 }}>Apagar todo o progresso? Não tem volta.</span>
+                <span style={{ fontSize: 14 }}>
+                  {account.loggedIn ? 'Apagar todo o progresso, também na conta e nos outros aparelhos? Não tem volta.' : 'Apagar todo o progresso? Não tem volta.'}
+                </span>
                 <button
                   className="btn btn-danger"
                   onClick={() => {

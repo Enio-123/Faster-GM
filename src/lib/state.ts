@@ -1,5 +1,6 @@
-// Estado do app: um único objeto salvo neste aparelho (localStorage) e, quando o app roda
-// dentro do Claude, também na conta do usuário (capacidade db, pasta privada dele).
+// Estado do app: um único objeto salvo neste aparelho (localStorage). No site, com a conta
+// do Faster GM (lib/account.ts), também na conta; dentro do Claude, na conta Claude do usuário
+// (capacidade db, pasta privada dele).
 import { useSyncExternalStore } from 'react'
 import { INITIAL_RATING, type Rating } from './rating'
 import type { Schedule } from './srs'
@@ -70,6 +71,8 @@ export interface AppState {
   /** Revisão dos padrões. 2: a madeira virou o tabuleiro padrão (2026-11). */
   rev?: number
   updatedAt: number
+  /** Quando o progresso foi apagado ou trocado por um backup: na conta, isso vale para todos os aparelhos. */
+  resetAt?: number
   settings: Settings
   profile: { created: number; chesscom?: number; otb?: number; onboarded?: boolean }
   puzzle: Rating
@@ -179,13 +182,45 @@ export function getState(): AppState {
   return state
 }
 
-export function setState(fn: (s: AppState) => AppState, opts: { remote?: boolean } = {}) {
+/**
+ * `remote`: a mudança veio da conta (não volta para ela nem marca o aparelho como alterado).
+ * `replace`: o progresso inteiro foi trocado (backup restaurado ou progresso apagado); na conta,
+ * ele substitui a versão de lá em vez de ser juntado com ela.
+ */
+export function setState(fn: (s: AppState) => AppState, opts: { remote?: boolean; replace?: boolean } = {}) {
   const next = fn(state)
   if (next === state) return
   state = opts.remote ? next : { ...next, updatedAt: Date.now() }
   persistLocal()
-  if (!opts.remote) scheduleRemote()
+  if (!opts.remote) {
+    scheduleRemote()
+    changeHooks.forEach((h) => h(!!opts.replace))
+  }
   listeners.forEach((l) => l())
+}
+
+const changeHooks = new Set<(replace: boolean) => void>()
+/** Avisa a cada mudança feita neste aparelho (para a conta saber que tem algo para enviar). */
+export function onLocalChange(fn: (replace: boolean) => void) {
+  changeHooks.add(fn)
+  return () => {
+    changeHooks.delete(fn)
+  }
+}
+
+/** Troca o estado pelo que veio da conta (já juntado com o deste aparelho). */
+export function replaceState(next: AppState) {
+  setState(() => next, { remote: true })
+}
+
+/** Grava já no aparelho, sem esperar o intervalo (antes de sair da conta, por exemplo). */
+export function flushLocal() {
+  window.clearTimeout(localTimer)
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state))
+  } catch {
+    /* armazenamento cheio ou bloqueado */
+  }
 }
 
 export function subscribe(fn: () => void) {
@@ -353,7 +388,7 @@ export function exportJson(): string {
 export function importJson(txt: string): boolean {
   try {
     const parsed = normalize(JSON.parse(txt))
-    setState(() => parsed)
+    setState(() => ({ ...parsed, resetAt: Date.now() }), { replace: true })
     return true
   } catch {
     return false
@@ -361,5 +396,11 @@ export function importJson(txt: string): boolean {
 }
 
 export function resetAll() {
-  setState(() => ({ ...initialState(), settings: state.settings }))
+  setState(() => ({ ...initialState(), settings: state.settings, resetAt: Date.now() }), { replace: true })
+}
+
+/** Tira o progresso deste aparelho (ao sair da conta: ele continua salvo na conta). Os ajustes ficam. */
+export function clearDeviceProgress() {
+  setState(() => ({ ...initialState(), settings: state.settings }), { remote: true })
+  flushLocal()
 }

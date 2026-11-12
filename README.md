@@ -6,8 +6,8 @@ App de treino diário de xadrez para quem quer subir de nível com disciplina: m
 
 | Modo | O que treina | Como funciona |
 | --- | --- | --- |
-| Escada de mate | Visualização de mates longos | Mate em 3, 4, 5, 6, 7 e 8+. Cada degrau abre com 8 acertos nas últimas 10 tentativas do degrau anterior. A primeira tentativa de cada problema vale para o rating de problemas (Glicko-1, no máximo 120 pontos por problema). Lance diferente do gabarito vale se o Stockfish confirmar mate no mesmo número de lances. |
-| Pressão de tempo | Decidir com o relógio correndo | 5, 10, 15, 20 ou 30 minutos de mates (até o degrau aberto na escada) ou de linhas táticas de 3 a 6+ lances, perto do seu rating. Errou, o app não mostra a solução e passa para o próximo. No fim, cada erro vem explicado. Os problemas errados vão para a revisão. |
+| Escada de mate | Visualização de mates longos | Mate em 3, 4, 5, 6, 7 e 8+, todos abertos desde o começo. A primeira tentativa de cada problema vale para o rating de problemas (Glicko-1, no máximo 120 pontos por problema). Lance diferente do gabarito vale se o Stockfish confirmar mate no mesmo número de lances. |
+| Pressão de tempo | Decidir com o relógio correndo | 5, 10, 15, 20 ou 30 minutos de mates (de 3 a 8+ lances) ou de linhas táticas de 3 a 6+ lances, perto do seu rating. Errou, o app não mostra a solução e passa para o próximo. No fim, cada erro vem explicado. Os problemas errados vão para a revisão. |
 | Às cegas | Visualização e cálculo sem ver as peças | Trilha de 5 etapas, explicada abaixo. |
 | Cálculo às cegas | Cálculo de linhas inteiras | Etapa 3 da trilha às cegas. As peças ficam paradas. Você digita a linha toda, seus lances e as respostas do adversário, e só no fim confere. Táticas ou mates, de 3 a 6+ lances, com três dificuldades. |
 | Sequência | Precisão sob pressão | Mates seguidos que ficam um lance mais longos a cada 3 acertos. Um erro encerra, e o erro vem explicado. |
@@ -50,7 +50,18 @@ O bot se chama Tempo e é o cavalo coroado do ícone, o mesmo que aparece como t
 - Motor: Stockfish 18 lite (WASM, 1 thread) em `public/engine`, rodando num Web Worker.
 - Visual: marrom do ícone (pau-rosa), tabuleiro de madeira por padrão (aço e torneio em Ajustes).
 - Sons: lance, captura, xeque, mate (a batida do xeque duas vezes) e início de partida vêm de gravações em `src/assets/sons`.
-- Progresso: salvo no aparelho (localStorage). Dentro do Claude também é salvo na conta, e em Ajustes há backup e restauração por texto.
+- Progresso: salvo no aparelho (localStorage). Com a conta do Faster GM (abaixo), também vai para o banco. Dentro do Claude é salvo na conta Claude, e em Ajustes há backup e restauração por texto.
+
+## Conta
+
+Nome de usuário e senha, sem e-mail (bloco Conta em Ajustes e aviso na tela Hoje). Serve para ter o mesmo progresso no celular e no computador. Dentro do Claude a conta não aparece.
+
+- Quando salva: alguns segundos depois de cada mudança (no máximo a cada 45 s enquanto você treina), ao sair do app, quando a internet volta e a cada 90 s com o app aberto. Sem internet, o progresso fica no aparelho e vai depois.
+- Dois aparelhos: cada um guarda a última versão da conta que conhece. Quem salva em cima de uma versão velha recebe a atual e junta com a sua (`src/lib/merge.ts`): soma o que cada aparelho fez desde a última sincronização (tentativas, minutos, problemas, partidas), sem contar duas vezes; recordes ficam com o maior; cartões de revisão e partidas se juntam pelo id.
+- Primeira entrada numa conta: o que já existe no aparelho é somado ao que está na conta. Restaurar um backup ou apagar o progresso troca o da conta, em todos os aparelhos. Ao sair, o progresso some do aparelho e continua na conta.
+- Banco: projeto próprio no Supabase, separado dos outros apps, montado por `supabase/migrations/20261112000000_contas.sql`. As tabelas ficam no esquema `fgm`, que a API não mostra; as funções `fgm_*` são a única entrada. Senha com bcrypt; a sessão é um código aleatório guardado só como hash; 10 senhas erradas em 15 minutos travam o nome por até 15 minutos; até 30 contas novas por hora, 20 aparelhos por conta e 3 MB de progresso; a sessão acaba depois de 1 ano sem uso.
+- Testes do banco em `supabase/tests/contas.sql`, rodados no CI num Postgres 17 limpo antes de cada publicação (o CI também desfaz com `supabase/rollback/` e aplica de novo).
+- Build: o endereço e a chave publicável do banco vêm de `VITE_CONTA_URL` e `VITE_CONTA_KEY` (`.env.production`). Sem eles, a conta não aparece.
 
 ## Rodar
 
@@ -60,6 +71,11 @@ npm run dev        # servidor local
 npm test           # testes (lógica, pacotes de problemas, progresso)
 npm run build      # gera dist/
 npm run artifact   # gera dist/app.html, a versão publicada dentro do Claude
+
+# testes do banco das contas, num Postgres 17 vazio (PGHOST, PGUSER etc. apontando para ele)
+psql -v ON_ERROR_STOP=1 -q -f supabase/tests/supabase-local.sql
+psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261112000000_contas.sql
+psql -v ON_ERROR_STOP=1 -f supabase/tests/contas.sql
 ```
 
 ## Publicar no GitHub Pages

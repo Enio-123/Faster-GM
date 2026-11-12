@@ -32,8 +32,36 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+  # Banco das contas: aplica a migração num Postgres limpo, roda os testes, desfaz e aplica de novo.
+  banco:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql -v ON_ERROR_STOP=1 -q -f supabase/tests/supabase-local.sql
+      - run: psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261112000000_contas.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/contas.sql
+      - run: |
+          psql -v ON_ERROR_STOP=1 -q -f supabase/rollback/20261112000000_contas.sql
+          psql -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261112000000_contas.sql
   deploy:
-    needs: build
+    needs: [build, banco]
     runs-on: ubuntu-latest
     environment:
       name: github-pages

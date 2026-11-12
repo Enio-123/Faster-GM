@@ -1,4 +1,4 @@
-// Registro de tentativas, rating de problemas, desbloqueio da escada e fila de revisão.
+// Registro de tentativas, rating de problemas e fila de revisão. Todos os degraus começam abertos.
 import type { BucketId, Puzzle, Row } from './puzzles'
 import { signature } from './puzzles'
 import { update } from './rating'
@@ -8,22 +8,8 @@ import { dayKey } from './time'
 
 export const EMPTY_LEVEL: LevelStats = { tries: 0, solved: 0, totalMs: 0, bestMs: 0, recent: [] }
 
-export const UNLOCK = { need: 8, of: 10 }
-
 export function levelStats(s: AppState, bucket: string): LevelStats {
   return s.levels[bucket] ?? EMPTY_LEVEL
-}
-
-export function recentHits(l: LevelStats): number {
-  return l.recent.slice(-UNLOCK.of).reduce((a, b) => a + b, 0)
-}
-
-/** O degrau seguinte abre com 8 acertos nas últimas 10 tentativas do degrau anterior. */
-export function isUnlocked(s: AppState, order: BucketId[], bucket: BucketId): boolean {
-  const i = order.indexOf(bucket)
-  if (i <= 0) return true
-  if ((s.levels[bucket]?.tries ?? 0) > 0) return true
-  return recentHits(levelStats(s, order[i - 1])) >= UNLOCK.need
 }
 
 export function seenSet(s: AppState, bucket: BucketId, rows: Row[]): Set<string> {

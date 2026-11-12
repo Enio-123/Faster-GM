@@ -109,3 +109,9 @@ export const IconInstall = () => (
     <path d="M4 15.5v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
   </I>
 )
+export const IconUser = () => (
+  <I>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" />
+  </I>
+)

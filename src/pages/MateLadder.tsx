@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { loadBucket, MATE_LEVELS, pickRow, toPuzzle, type BucketId, type Puzzle, type Row } from '../lib/puzzles'
-import { isUnlocked, levelStats, markSeen, recentHits, recordAttempt, seenSet, UNLOCK } from '../lib/progress'
+import { levelStats, markSeen, recordAttempt, seenSet } from '../lib/progress'
 import { getState, useAppState } from '../lib/state'
 import { formatSolve } from '../lib/time'
 import { go, useTrainingTimer } from '../ui/hooks'
-import { IconArrowLeft, IconArrowRight, IconEye, IconLock, IconRetry } from '../ui/icons'
+import { IconArrowLeft, IconArrowRight, IconEye, IconRetry } from '../ui/icons'
 import { presetPressure } from './Pressure'
 import { CoachSays, coachText, Feedback, moodFor, MoveList, PromptLine, PuzzleBoard, RunTimer, Steps } from '../train/PuzzleView'
 import { usePuzzleRun } from '../train/usePuzzleRun'
@@ -12,7 +12,8 @@ import { usePuzzleRun } from '../train/usePuzzleRun'
 const ORDER = MATE_LEVELS.map((l) => l.id)
 const LAST_KEY = 'faster-gm:mate-level'
 
-function savedLevel(): BucketId {
+/** O último degrau escolhido na escada (todos começam abertos). */
+export function savedMateLevel(): BucketId {
   try {
     const v = localStorage.getItem(LAST_KEY) as BucketId | null
     if (v && ORDER.includes(v)) return v
@@ -25,10 +26,7 @@ function savedLevel(): BucketId {
 export function MateLadder() {
   useTrainingTimer('mate')
   const s = useAppState()
-  const [level, setLevel] = useState<BucketId>(() => {
-    const v = savedLevel()
-    return isUnlocked(getState(), ORDER, v) ? v : 'mate3'
-  })
+  const [level, setLevel] = useState<BucketId>(savedMateLevel)
   const [rows, setRows] = useState<Row[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null)
@@ -78,15 +76,8 @@ export function MateLadder() {
   const view = run.view
   const stats = levelStats(s, level)
   const idx = ORDER.indexOf(level)
-  const nextLevel = ORDER[idx + 1]
-  const hits = recentHits(stats)
   const finished = view && (view.phase === 'solved' || view.phase === 'failed')
 
-  const rungs = useMemo(
-    () =>
-      MATE_LEVELS.map((l) => ({ ...l, open: isUnlocked(s, ORDER, l.id), st: levelStats(s, l.id) })),
-    [s],
-  )
 
   return (
     <div className="page page-train">
@@ -98,9 +89,9 @@ export function MateLadder() {
           <h2>Escada de mate</h2>
         </div>
         <div className="seg" role="group" aria-label="Degrau">
-          {rungs.map((l) => (
-            <button key={l.id} aria-pressed={l.id === level} disabled={!l.open} onClick={() => setLevel(l.id)} title={l.open ? l.label : 'Bloqueado'}>
-              {l.open ? (l.n === 8 ? '8+' : l.n) : <span style={{ display: 'inline-flex', width: 14 }}><IconLock /></span>}
+          {MATE_LEVELS.map((l) => (
+            <button key={l.id} aria-pressed={l.id === level} onClick={() => setLevel(l.id)} title={l.label}>
+              {l.n === 8 ? '8+' : l.n}
             </button>
           ))}
         </div>
@@ -179,19 +170,6 @@ export function MateLadder() {
                 <span className="k">melhor tempo</span>
               </div>
             </div>
-            {nextLevel && !isUnlocked(s, ORDER, nextLevel) && (
-              <div className="stack" style={{ gap: 6 }}>
-                <div className="row-between" style={{ fontSize: 14 }}>
-                  <span>Para abrir {MATE_LEVELS[idx + 1].label.toLowerCase()}</span>
-                  <span className="num muted">
-                    {hits}/{UNLOCK.need} nas últimas {UNLOCK.of}
-                  </span>
-                </div>
-                <div className="bar">
-                  <span style={{ width: `${Math.min(100, (hits / UNLOCK.need) * 100)}%` }} />
-                </div>
-              </div>
-            )}
             <p className="muted" style={{ fontSize: 13 }}>
               Problemas reais de partidas (base do Lichess). Lance diferente do gabarito vale se o motor confirmar o mate no mesmo número de lances.
             </p>

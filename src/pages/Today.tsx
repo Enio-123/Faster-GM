@@ -7,6 +7,7 @@ import { blockMinutes, BLOCKS, dayComplete, nextBlock, streak, totalSeconds } fr
 import { setState, useAppState } from '../lib/state'
 import { addDays, dayKey, formatMinutes, weekdayShort } from '../lib/time'
 import { go } from '../ui/hooks'
+import { AccountCard } from '../ui/Account'
 import { InstallCard } from '../ui/Install'
 import { IconArrowRight, IconCheck } from '../ui/icons'
 
@@ -49,6 +50,7 @@ export function Today() {
       </section>
 
       <InstallCard />
+      <AccountCard />
 
       {firstRun && <FirstRun />}
 

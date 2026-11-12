@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/app.css'
 import { App } from './App'
+import { initAccount } from './lib/account'
 import { initInstall } from './lib/install'
 import { connectAccountStorage } from './lib/state'
 
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
 )
 
 void connectAccountStorage()
+initAccount()
 
 // Funciona offline quando publicado como site (GitHub Pages).
 if ('serviceWorker' in navigator && location.hostname.endsWith('github.io')) {
